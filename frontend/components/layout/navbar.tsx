@@ -3,6 +3,34 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import React from "react";
+import { ScrollToFeaturesBtn } from "../ui/scroll-to-btn";
+
+export function NavLink({
+  href,
+  children,
+  active = false,
+  onNavigate,
+}: {
+  href: string;
+  children: React.ReactNode;
+  active?: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+        active
+          ? "bg-slate-900/10 text-slate-900 backdrop-blur-sm dark:bg-white/10 dark:text-white"
+          : "text-slate-600 hover:text-slate-900 hover:bg-slate-900/5 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/5"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
 
 export default function NavBar() {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -42,9 +70,7 @@ export default function NavBar() {
           <NavLink href="/about" active={pathname === "/about"}>
             About Us
           </NavLink>
-          <NavLink href="/features" active={pathname === "/features"}>
-            Features
-          </NavLink>
+          <ScrollToFeaturesBtn />
           {/* <NavLink href="/pricing" active={pathname === "/pricing"}>
             Pricing
           </NavLink> */}
@@ -111,29 +137,3 @@ export default function NavBar() {
 }
 
 
-
-function NavLink({
-  href,
-  children,
-  active = false,
-  onNavigate,
-}: {
-  href: string;
-  children: React.ReactNode;
-  active?: boolean;
-  onNavigate?: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onNavigate}
-      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-        active
-          ? "bg-slate-900/10 text-slate-900 backdrop-blur-sm dark:bg-white/10 dark:text-white"
-          : "text-slate-600 hover:text-slate-900 hover:bg-slate-900/5 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/5"
-      }`}
-    >
-      {children}
-    </Link>
-  );
-}

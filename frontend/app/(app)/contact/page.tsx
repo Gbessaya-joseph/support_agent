@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useForm } from "react-hook-form"
 import { Input } from "@/components/ui/input"
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
 const ContactPage = () => {
       const [error, setError] = React.useState<string | null>(null)
       const [success, setSuccess] = React.useState<string | null>(null)
@@ -41,7 +42,7 @@ const ContactPage = () => {
         setError(null)
         setSuccess(null)
         try {
-          const response = await fetch("/api/contact", {
+          const response = await fetch(`${BACKEND_URL}/api/v1/admin/contact`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -87,7 +88,7 @@ const ContactPage = () => {
                 </div>
                 <div>
                     <h3 className="font-bold">Partnership Inquiries</h3>
-                    <p className="text-muted-foreground mb-2 leading-relaxed">If you're interested in partnering with us, please reach out to our business development team.</p>
+                    <p className="text-muted-foreground mb-2 leading-relaxed">If you&lsquo;re interested in partnering with us, please reach out to our business development team.</p>
                     <p className="text-muted-foreground mb-2 leading-relaxed">partnerships@supportagent.com</p>
                 </div>
             </div>

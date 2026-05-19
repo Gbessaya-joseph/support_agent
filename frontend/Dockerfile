@@ -3,61 +3,67 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm
+# Installer pnpm
 RUN npm install -g pnpm
 
-# Allow native build scripts (sharp, unrs-resolver) required by Next.js
+# Fixer un store pnpm unique (accessible à tous les utilisateurs)
+RUN pnpm config set store-dir /app/.pnpm-store --global
+
+# Autoriser les builds natifs (sharp, unrs-resolver)
 ENV PNPM_ONLY_BUILT_DEPENDENCIES='["sharp","unrs-resolver"]'
 
-# Copy package files first (better layer caching)
+# Copier les fichiers de dépendances
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Install ALL dependencies (including devDependencies for build)
-RUN pnpm install --no-frozen-lockfile
+# Installer toutes les dépendances (dev inclus pour build)
+RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Copier le code source
 COPY . .
 
-# Build the application
+# Build Next.js
 RUN pnpm run build
 
 # Production stage
 FROM node:22-alpine
 
-# Create non-root user
+# Créer un utilisateur non-root
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Install pnpm
+# Installer pnpm
 RUN npm install -g pnpm
 
-# Allow native build scripts (sharp) required by Next.js in production
+# Fixer le même store pnpm
+RUN pnpm config set store-dir /app/.pnpm-store --global
+
+# Autoriser les builds natifs
 ENV PNPM_ONLY_BUILT_DEPENDENCIES='["sharp","unrs-resolver"]'
 
-# Copy package files
+# Copier les fichiers de dépendances
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Install production dependencies only
+# Installer uniquement les dépendances de prod
 RUN pnpm install --prod --frozen-lockfile
 
-# Copy built application from builder
+# Copier l’application buildée
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.ts ./
 
-# Set ownership to non-root user
+# Donner les droits à appuser
 RUN chown -R appuser:appgroup /app
 
-# Switch to non-root user
+# Passer en utilisateur non-root
 USER appuser
 
-# Expose port
+# Exposer le port
 EXPOSE 3000
 
-# Health check
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
-# Start the application
+# Démarrer l’application
 CMD ["pnpm", "start"]
