@@ -3,14 +3,8 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Installer pnpm
-RUN npm install -g pnpm
-
-# Fixer un store pnpm unique (accessible à tous les utilisateurs)
-RUN pnpm config set store-dir /app/.pnpm-store --global
-
-# Autoriser les builds natifs (sharp, unrs-resolver)
-ENV PNPM_ONLY_BUILT_DEPENDENCIES='["sharp","unrs-resolver"]'
+# Install pnpm (v9 — does not enforce build script approval)
+RUN npm install -g pnpm@9
 
 # Copier les fichiers de dépendances
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -32,14 +26,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Installer pnpm
-RUN npm install -g pnpm
-
-# Fixer le même store pnpm
-RUN pnpm config set store-dir /app/.pnpm-store --global
-
-# Autoriser les builds natifs
-ENV PNPM_ONLY_BUILT_DEPENDENCIES='["sharp","unrs-resolver"]'
+# Install pnpm (v9 — does not enforce build script approval)
+RUN npm install -g pnpm@9
 
 # Copier les fichiers de dépendances
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

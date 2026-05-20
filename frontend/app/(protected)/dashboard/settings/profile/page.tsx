@@ -6,9 +6,7 @@ async function ProfileSettingsPage() {
 
   return (
     <div>
-      <h1>Profile Settings</h1>
       <ProfilePage id={user?.id} email={user?.email} user_metadata={user?.user_metadata} />
-      {/* Add your profile settings form or components here */}
     </div>
   );
 }

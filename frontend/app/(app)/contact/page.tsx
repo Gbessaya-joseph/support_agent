@@ -42,7 +42,7 @@ const ContactPage = () => {
         setError(null)
         setSuccess(null)
         try {
-          const response = await fetch(`${BACKEND_URL}/api/v1/admin/contact`, {
+          const response = await fetch(`${BACKEND_URL}/api/v1/contact`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

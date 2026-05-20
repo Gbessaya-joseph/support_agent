@@ -75,7 +75,7 @@ export default function Features() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-primary relative overflow-hidden">
+    <div className="min-h-screen bg-background text-primary relative overflow-hidden pb-4">
       {/* Background gradient effect */}
       <div 
         ref={containerRef}
@@ -144,7 +144,7 @@ export default function Features() {
                 </button>
 
                 {/* Special content for first card */}
-                {card.id === 1 && (
+                {/* {card.id === 1 && (
                   <div className="mt-8 relative">
                     <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50">
                       <div className="flex items-center justify-center space-x-4">
@@ -162,7 +162,7 @@ export default function Features() {
                       </div>
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {/* Self hosted badge for third card */}
                 {card.id === 3 && (
