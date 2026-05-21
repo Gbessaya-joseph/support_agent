@@ -6,10 +6,8 @@ import { useState, useEffect } from "react"
 import {
   Plus,
   Trash2,
-  Copy,
-  Eye,
-  EyeOff,
-  Key as KeyIcon,
+  Edit2,
+  Globe,
   Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -41,301 +39,279 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import {toast} from "sonner"
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter'
 import {vscDarkPlus} from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { formatDistanceToNow } from "date-fns"
+import { UserInfo } from "@/lib/types/user-info"
+import { createClient } from '@/utils/supabase/client'
 
-interface ApiKey {
-  id: string
-  name: string
-  key: string
-  allowed_urls: string[]
-  created_at: string
-  last_used_at: string | null
-}
 
-function ApiKeysSkeleton() {
+function AllowedDomainsSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <Skeleton className="h-7 w-24" />
-          <Skeleton className="h-4 w-80" />
+          <Skeleton className="h-7 w-32" />
+          <Skeleton className="h-4 w-96" />
         </div>
         <Skeleton className="h-10 w-36" />
       </div>
 
-      {/* API Keys List Skeleton */}
+      {/* Domains List Skeleton */}
       <div className="space-y-4">
-        {[1, 2].map((i) => (
+        {[1, 2, 3].map((i) => (
           <Card key={i}>
             <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-3 flex-1">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-5 w-40" />
-                    <Skeleton className="h-5 w-32 rounded-full" />
-                  </div>
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-3 w-32" />
+              <div className="flex items-center justify-between">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-4 w-40" />
                 </div>
-                <Skeleton className="h-9 w-9" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-9 w-9" />
+                  <Skeleton className="h-9 w-9" />
+                </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
-
-      {/* API URL Skeleton */}
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-64" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-10 w-full" />
-        </CardContent>
-      </Card>
-
-      {/* React Component Example Skeleton */}
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-80" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-96 w-full rounded-lg" />
-        </CardContent>
-      </Card>
     </div>
   )
 }
 
-export default function ApiKeysPage() {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
-  const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [newKeyName, setNewKeyName] = useState("")
-  const [allowedUrls, setAllowedUrls] = useState("")
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [deleteKeyId, setDeleteKeyId] = useState<string | null>(null)
-  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
-  const [copiedKey, setCopiedKey] = useState<string | null>(null)
+export default function AllowedDomainsPage() {
+  const supabase = createClient()
 
-  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_BASE_URL
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+  const [allowedDomains, setAllowedDomains] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [deleteDomainId, setDeleteDomainId] = useState<string | null>(null)
+  const [editingDomain, setEditingDomain] = useState<string | null>(null)
+  const [newDomainValue, setNewDomainValue] = useState("")
+  const [creating, setCreating] = useState(false)
+  const [updating, setUpdating] = useState(false)
+
 
   useEffect(() => {
-    fetchApiKeys()
+    fetchAllowedDomains()
   }, [])
 
-  const fetchApiKeys = async () => {
-    setLoading(true)
+  const fetchAllowedDomains = async () => {
+    // Récupérer le token juste avant la requête
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('No authentication token available')
+      }
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/api-keys`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
         {
-          credentials: "include",
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
         }
       )
-
-      if (!response.ok) throw new Error("Failed to fetch API keys")
-
+      if (!response.ok) throw new Error("Failed to fetch allowed domains")
       const data = await response.json()
-      setApiKeys(data.api_keys || [])
+      setAllowedDomains(data.domains || [])
     } catch (error) {
-      toast.error("Failed to load API keys. Please try again.", { position: "top-right" })
+      toast.error("Failed to fetch allowed domains.", { position: "top-right" })
+      setAllowedDomains([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCreateKey = async () => {
-    if (!newKeyName.trim()) {
-      toast.error("Please enter a name for the API key.", { position: "top-right" })
+  const handleAddDomain = async () => {
+    // Récupérer le token juste avant la requête
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('No authentication token available')
+      }
+    if (!newDomainValue.trim()) {
+      toast.error("Please enter a domain", { position: "top-right" })
       return
     }
 
-    setCreating(true)
     try {
-      const urls = allowedUrls
-        .split(",")
-        .map((url) => url.trim())
-        .filter(Boolean)
-
+      setCreating(true)
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/api-keys`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
-            name: newKeyName,
-            allowed_urls: urls,
+            domain: newDomainValue.trim(),
           }),
         }
       )
+      console.log("Adding domain:", newDomainValue.trim())
 
-      if (!response.ok) throw new Error("Failed to create API key")
+      if (!response.ok) throw new Error("Failed to add domain")
 
       const data = await response.json()
-      setApiKeys([...apiKeys, data.api_key])
-
-      toast.success("API key created successfully. Make sure to copy it now!", { position: "top-right" })
+      setAllowedDomains(data.domains || [])
+      
+      toast.success("Domain added successfully", { position: "top-right" })
 
       setShowCreateDialog(false)
-      setNewKeyName("")
-      setAllowedUrls("")
+      setNewDomainValue("")
     } catch (error) {
-      toast.error("Failed to create API key.", { position: "top-right" })
+      toast.error("Failed to add domain.", { position: "top-right" })
     } finally {
       setCreating(false)
     }
   }
 
-  const handleDeleteKey = async (keyId: string) => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/api-keys/${keyId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      )
-
-      if (!response.ok) throw new Error("Failed to delete API key")
-
-      setApiKeys(apiKeys.filter((key) => key.id !== keyId))
-
-      toast.success("API key deleted successfully.", { position: "top-right" })
-    } catch (error) {
-      toast.error("Failed to delete API key.", { position: "top-right" })
+  const handleEditDomain = async () => {
+    if (!editingDomain || !newDomainValue.trim()) {
+      toast.error("Please enter a domain", { position: "top-right" })
+      return
     }
-    setDeleteKeyId(null)
+
+    // try {
+    //   setUpdating(true)
+    //   const response = await fetch(
+    //     `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains/${editingDomain.id}`,
+    //     {
+    //       method: "PUT",
+    //       headers: {
+    //         'Content-Type': 'application/json',
+    //         Authorization: `Bearer ${token}`,
+    //       },
+    //       body: JSON.stringify({
+    //         domain: newDomainValue.trim(),
+    //       }),
+    //     }
+    //   )
+
+    //   if (!response.ok) throw new Error("Failed to update domain")
+
+    //   const data = await response.json()
+    //   setAllowedDomains(
+    //     allowedDomains.map((d) =>
+    //       d.id === editingDomain.id ? data.allowed_domain : d
+    //     )
+    //   )
+
+    //   toast.success("Domain updated successfully", { position: "top-right" })
+
+    //   setShowEditDialog(false)
+    //   setEditingDomain(null)
+    //   setNewDomainValue("")
+    // } catch (error) {
+    //   toast.error("Failed to update domain.", { position: "top-right" })
+    // } finally {
+    //   setUpdating(false)
+    // }
   }
 
-  const toggleKeyVisibility = (keyId: string) => {
-    setVisibleKeys((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(keyId)) {
-        newSet.delete(keyId)
-      } else {
-        newSet.add(keyId)
-      }
-      return newSet
-    })
-  }
+  const handleDeleteDomain = async (domainId: string) => {
+    // try {
+    //   const response = await fetch(
+    //     `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains/${domainId}`,
+    //     {
+    //       method: "DELETE",
+    //       headers: {
+    //         Authorization: `Bearer ${token}`,
+    //       },
+    //     }
+    //   )
 
-  const copyToClipboard = async (text: string, keyId: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedKey(keyId)
-      setTimeout(() => setCopiedKey(null), 2000)
-      toast.success("Copied to clipboard.", { position: "bottom-right" })
-    } catch (error) {
-      toast.error("Failed to copy to clipboard.", { position: "bottom-right" })
-    }
-  }
+    //   if (!response.ok) throw new Error("Failed to delete domain")
 
-  const reactComponentCode = `import React, { useState } from 'react';
-
-function DocumentUploader() {
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleUpload = async () => {
-    if (!file) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await fetch('${apiUrl}/api/v1/documents/upload', {
-        method: 'POST',
-        headers: {
-          'X-API-Key': 'YOUR_API_KEY_HERE'
-        },
-        body: formData
-      });
-
-      if (!response.ok) throw new Error('Upload failed');
+    //   setAllowedDomains(allowedDomains.filter((d) => d.id !== domainId))
       
-      const data = await response.json();
-      console.log('Upload successful:', data);
-    } catch (error) {
-      console.error('Upload error:', error);
-    } finally {
-      setUploading(false);
-    }
-  };
+    //   toast.success("Domain deleted successfully", { position: "top-right" })
+    //   setDeleteDomainId(null)
+    // } catch (error) {
+    //   toast.error("Failed to delete domain.", { position: "top-right" })
+    // }
+  }
 
-  return (
-    <div>
-      <input 
-        type="file" 
-        accept=".pdf"
-        onChange={(e) => setFile(e.target.files[0])}
-      />
-      <button onClick={handleUpload} disabled={uploading}>
-        {uploading ? 'Uploading...' : 'Upload PDF'}
-      </button>
-    </div>
-  );
+  const openEditDialog = (domain: string) => {
+    setEditingDomain(domain)
+    setNewDomainValue(domain)
+    setShowEditDialog(true)
+  }
+
+  const reactComponentCode = `// Example: Calling your API from an allowed domain
+const apiUrl = '${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}';
+
+async function callAPI() {
+  try {
+    const response = await fetch(\`\${apiUrl}/api/v1/documents/upload\`, {
+      method: 'POST',
+      credentials: 'include', // Sends cookies for auth
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Request failed');
+    }
+
+    const data = await response.json();
+    console.log('Success:', data);
+  } catch (error) {
+    console.error('Error:', error);
+  }
 }
 
-export default DocumentUploader;`
+// Note: This request will only succeed if your domain
+// is in the allowed domains list above`
 
   if (loading) {
-    return <ApiKeysSkeleton />
+    return <AllowedDomainsSkeleton />
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">API Keys</h2>
+          <h2 className="text-lg font-semibold">Allowed Domains</h2>
           <p className="text-sm text-muted-foreground">
-            Manage your API keys for programmatic access
+            Manage the domains allowed to access your API
           </p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Create API Key
+              Add Domain
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New API Key</DialogTitle>
+              <DialogTitle>Add Allowed Domain</DialogTitle>
               <DialogDescription>
-                Generate a new API key for your application
+                Enter a domain that will be allowed to access your API
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="key-name">Key Name</Label>
+                <Label htmlFor="domain">Domain</Label>
                 <Input
-                  id="key-name"
-                  value={newKeyName}
-                  onChange={(e) => setNewKeyName(e.target.value)}
-                  placeholder="My Application"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="allowed-urls">Allowed URLs (comma-separated)</Label>
-                <Input
-                  id="allowed-urls"
-                  value={allowedUrls}
-                  onChange={(e) => setAllowedUrls(e.target.value)}
-                  placeholder="https://example.com, https://app.example.com"
+                  id="domain"
+                  value={newDomainValue}
+                  onChange={(e) => setNewDomainValue(e.target.value)}
+                  placeholder="example.com"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Leave empty to allow all domains
+                  Enter the domain without https:// (e.g., example.com)
                 </p>
               </div>
             </div>
@@ -343,96 +319,56 @@ export default DocumentUploader;`
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateKey} disabled={creating}>
-                {creating ? "Creating..." : "Create Key"}
+              <Button onClick={handleAddDomain} disabled={creating}>
+                {creating ? "Adding..." : "Add Domain"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* API Keys List */}
-      {apiKeys.length === 0 ? (
+      {/* Allowed Domains List */}
+      {allowedDomains.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <KeyIcon className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground mb-4">No API keys yet</p>
+            <Globe className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-sm text-muted-foreground mb-4">No allowed domains yet</p>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Your First API Key
+              Add Allowed Domain
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          {apiKeys.map((apiKey) => (
-            <Card key={apiKey.id}>
+          {allowedDomains.map(() => (
+            <Card key={Math.random()}>
               <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-3 flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-semibold">{apiKey.name}</h3>
-                      {apiKey.last_used_at && (
-                        <Badge variant="secondary">
-                          Last used {formatDistanceToNow(new Date(apiKey.last_used_at), { addSuffix: true })}
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={
-                          visibleKeys.has(apiKey.id)
-                            ? apiKey.key
-                            : "•".repeat(32)
-                        }
-                        readOnly
-                        className="font-mono text-sm"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => toggleKeyVisibility(apiKey.id)}
-                      >
-                        {visibleKeys.has(apiKey.id) ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => copyToClipboard(apiKey.key, apiKey.id)}
-                      >
-                        {copiedKey === apiKey.id ? (
-                          <Check className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-
-                    {apiKey.allowed_urls.length > 0 && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Allowed URLs: </span>
-                        <span>{apiKey.allowed_urls.join(", ")}</span>
-                      </div>
-                    )}
-
-                    <div className="text-xs text-muted-foreground">
-                      Created {formatDistanceToNow(new Date(apiKey.created_at), { addSuffix: true })}
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <h3 className="font-semibold text-base">{allowedDomains}</h3>
+                    {/* <p className="text-xs text-muted-foreground">
+                      Created {formatDistanceToNow(new Date(domain.created_at), { addSuffix: true })}
+                    </p> */}
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => setDeleteKeyId(apiKey.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {/* <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => openEditDialog(domain)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleteDomainId(domain.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button> */}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -440,36 +376,43 @@ export default DocumentUploader;`
         </div>
       )}
 
-      {/* API URL */}
-      <Card>
-        <CardHeader>
-          <CardTitle>API Base URL</CardTitle>
-          <CardDescription>Use this URL for all API requests</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            <Input value={apiUrl} readOnly className="font-mono" />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => copyToClipboard(apiUrl || "", "api-url")}
-            >
-              {copiedKey === "api-url" ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
+      {/* Edit Domain Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Allowed Domain</DialogTitle>
+            <DialogDescription>
+              Update the domain name
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-domain">Domain</Label>
+              <Input
+                id="edit-domain"
+                value={newDomainValue}
+                onChange={(e) => setNewDomainValue(e.target.value)}
+                placeholder="example.com"
+              />
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditDomain} disabled={updating}>
+              {updating ? "Updating..." : "Update Domain"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* React Component Example */}
       <Card>
         <CardHeader>
           <CardTitle>React Component Example</CardTitle>
           <CardDescription>
-            Sample code for uploading documents using the API
+            Sample code for calling your API from an allowed domain
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -488,41 +431,34 @@ export default DocumentUploader;`
               variant="outline"
               size="sm"
               className="absolute top-2 right-2"
-              onClick={() => copyToClipboard(reactComponentCode, "react-code")}
+              onClick={() => {
+                navigator.clipboard.writeText(reactComponentCode)
+                toast.success("Copied to clipboard", { position: "bottom-right" })
+              }}
             >
-              {copiedKey === "react-code" ? (
-                <>
-                  <Check className="mr-2 h-4 w-4 text-green-600" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy
-                </>
-              )}
+              <Check className="mr-2 h-4 w-4" />
+              Copy
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteKeyId} onOpenChange={() => setDeleteKeyId(null)}>
+      <AlertDialog open={!!deleteDomainId} onOpenChange={() => setDeleteDomainId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete API Key?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Domain?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this API key. Applications using this key will no longer
-              be able to access your API.
+              This will permanently delete this allowed domain. Requests from this domain will no longer be accepted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteKeyId && handleDeleteKey(deleteKeyId)}
+              onClick={() => deleteDomainId && handleDeleteDomain(deleteDomainId)}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Delete Key
+              Delete Domain
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
