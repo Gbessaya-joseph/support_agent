@@ -44,7 +44,6 @@ import {toast} from "sonner"
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter'
 import {vscDarkPlus} from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { formatDistanceToNow } from "date-fns"
-import { UserInfo } from "@/lib/types/user-info"
 import { createClient } from '@/utils/supabase/client'
 
 
@@ -83,9 +82,6 @@ function AllowedDomainsSkeleton() {
 }
 
 export default function AllowedDomainsPage() {
-  const supabase = createClient()
-
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [allowedDomains, setAllowedDomains] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -102,6 +98,7 @@ export default function AllowedDomainsPage() {
   }, [])
 
   const fetchAllowedDomains = async () => {
+    const supabase = createClient()
     // Récupérer le token juste avant la requête
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -114,10 +111,10 @@ export default function AllowedDomainsPage() {
         `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
         {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+          headers: { 'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
           },
+          // credentials: 'include',
         }
       )
       if (!response.ok) throw new Error("Failed to fetch allowed domains")
@@ -132,13 +129,10 @@ export default function AllowedDomainsPage() {
   }
 
   const handleAddDomain = async () => {
+    const supabase = createClient()
     // Récupérer le token juste avant la requête
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
     if (!newDomainValue.trim()) {
       toast.error("Please enter a domain", { position: "top-right" })
       return
@@ -150,16 +144,13 @@ export default function AllowedDomainsPage() {
         `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
         {
           method: "POST",
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          // credentials: 'include',
           body: JSON.stringify({
-            domain: newDomainValue.trim(),
+            domains: [newDomainValue.trim()],
           }),
         }
       )
-      console.log("Adding domain:", newDomainValue.trim())
 
       if (!response.ok) throw new Error("Failed to add domain")
 
@@ -178,69 +169,78 @@ export default function AllowedDomainsPage() {
   }
 
   const handleEditDomain = async () => {
+    const supabase = createClient()
+    // Récupérer le token juste avant la requête
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+
     if (!editingDomain || !newDomainValue.trim()) {
       toast.error("Please enter a domain", { position: "top-right" })
       return
     }
 
-    // try {
-    //   setUpdating(true)
-    //   const response = await fetch(
-    //     `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains/${editingDomain.id}`,
-    //     {
-    //       method: "PUT",
-    //       headers: {
-    //         'Content-Type': 'application/json',
-    //         Authorization: `Bearer ${token}`,
-    //       },
-    //       body: JSON.stringify({
-    //         domain: newDomainValue.trim(),
-    //       }),
-    //     }
-    //   )
+    if (editingDomain === newDomainValue.trim()) {
+      setShowEditDialog(false)
+      return
+    }
 
-    //   if (!response.ok) throw new Error("Failed to update domain")
+    try {
+      setUpdating(true)
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
+        {
+          method: "PUT",
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          // credentials: 'include',
+          body: JSON.stringify({
+            old_domain: editingDomain,
+            new_domain: newDomainValue.trim(),
+          }),
+        }
+      )
 
-    //   const data = await response.json()
-    //   setAllowedDomains(
-    //     allowedDomains.map((d) =>
-    //       d.id === editingDomain.id ? data.allowed_domain : d
-    //     )
-    //   )
+      if (!response.ok) throw new Error("Failed to update domain")
 
-    //   toast.success("Domain updated successfully", { position: "top-right" })
+      const data = await response.json()
+      setAllowedDomains(data.domains || [])
 
-    //   setShowEditDialog(false)
-    //   setEditingDomain(null)
-    //   setNewDomainValue("")
-    // } catch (error) {
-    //   toast.error("Failed to update domain.", { position: "top-right" })
-    // } finally {
-    //   setUpdating(false)
-    // }
+      toast.success("Domain updated successfully", { position: "top-right" })
+
+      setShowEditDialog(false)
+      setEditingDomain(null)
+      setNewDomainValue("")
+    } catch (error) {
+      toast.error("Failed to update domain.", { position: "top-right" })
+    } finally {
+      setUpdating(false)
+    }
   }
 
-  const handleDeleteDomain = async (domainId: string) => {
-    // try {
-    //   const response = await fetch(
-    //     `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains/${domainId}`,
-    //     {
-    //       method: "DELETE",
-    //       headers: {
-    //         Authorization: `Bearer ${token}`,
-    //       },
-    //     }
-    //   )
+  const handleDeleteDomain = async (domain: string) => {
+    const supabase = createClient()
+    // Récupérer le token juste avant la requête
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains/${domain}`,
+        {
+          method: "DELETE",
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          // credentials: 'include',
+        }
+      )
 
-    //   if (!response.ok) throw new Error("Failed to delete domain")
+      if (!response.ok) throw new Error("Failed to delete domain")
 
-    //   setAllowedDomains(allowedDomains.filter((d) => d.id !== domainId))
+      const data = await response.json()
+      setAllowedDomains(data.domains || [])
       
-    //   toast.success("Domain deleted successfully", { position: "top-right" })
-    //   setDeleteDomainId(null)
-    // } catch (error) {
-    //   toast.error("Failed to delete domain.", { position: "top-right" })
-    // }
+      toast.success("Domain deleted successfully", { position: "top-right" })
+      setDeleteDomainId(null)
+    } catch (error) {
+      toast.error("Failed to delete domain.", { position: "top-right" })
+    }
   }
 
   const openEditDialog = (domain: string) => {
@@ -341,19 +341,16 @@ async function callAPI() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {allowedDomains.map(() => (
-            <Card key={Math.random()}>
+          {allowedDomains.map((domain) => (
+            <Card key={domain}>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2 flex-1">
-                    <h3 className="font-semibold text-base">{allowedDomains}</h3>
-                    {/* <p className="text-xs text-muted-foreground">
-                      Created {formatDistanceToNow(new Date(domain.created_at), { addSuffix: true })}
-                    </p> */}
+                    <h3 className="font-semibold text-base">{domain}</h3>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* <Button
+                    <Button
                       variant="outline"
                       size="icon"
                       onClick={() => openEditDialog(domain)}
@@ -364,10 +361,10 @@ async function callAPI() {
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:text-destructive"
-                      onClick={() => setDeleteDomainId(domain.id)}
+                      onClick={() => setDeleteDomainId(domain)}
                     >
                       <Trash2 className="h-4 w-4" />
-                    </Button> */}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
