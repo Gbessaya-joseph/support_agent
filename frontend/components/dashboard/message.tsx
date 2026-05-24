@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
-import { Reply, Forward } from "lucide-react";
+import { Reply, Forward, ForwardIcon, ReplyIcon } from "lucide-react";
 
 function MessageHeader(user: {
   name: string;

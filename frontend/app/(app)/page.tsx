@@ -12,7 +12,9 @@ export default function Home() {
   return (
     <>
       <HeroBackground content={<Hero />} />
-      <Features />
+      <div id='features'>
+        <Features />
+      </div>
       <div id="aha-demo">
         <AhaDemo />
       </div>

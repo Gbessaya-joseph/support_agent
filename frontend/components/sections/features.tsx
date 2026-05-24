@@ -29,59 +29,53 @@ export default function Features() {
   const cards = [
     {
       id: 1,
-      title: "Build multi-step agents calling custom tools",
-      description: "Create agentic systems on a single screen. Integrate any LLM into your workflows as fast as you can drag-n-drop.",
-      buttonText: "Explore AI",
+      title: "Trained on Your Store’s Data",
+      description: "Connect your FAQs, shipping policies, and product catalogs in one click. The AI instantly learns everything about your brand to deliver perfectly accurate, brand-aligned answers 24/7.",
+      buttonText: "See how it learns",
       features: [
-        // "Update Detected",
-        // "Running Custom Unit Testing",
-        // "Update Rolled Back Automatically",
-        // "IT Team Notified of New Ticket",
-        // "Custom Unit Testing Failed",
-        // "Update Installed"
+        "Instant Knowledge Sync"
       ]
     },
     {
       id: 2,
-      title: "Chat with your own data",
-      description: "Use Slack, Teams, SMS, voice, or our embedded chat interface to get accurate answers from your data, create tasks, and complete workflows.",
-      buttonText: "Try Chat",
-      features: []
+      title: "Context-Aware Conversations",
+      description: "Customers don't talk like robots, and neither should your bot. Our engine remembers previous messages and understands follow-up questions, providing a fluid experience just like a real sales assistant.",
+      buttonText: "See it in action",
+      features: [
+        "Natural Multi-Turn Chat",
+      ]
     },
     {
       id: 3,
-      title: "Self-host everything – including AI models",
-      description: "Protect your data by deploying on-prem.",
-      buttonText: "Deploy Now",
+      title: "Seamless Human Handoff",
+      description: "Never lose a complex sale. When the AI detects a tricky question or a frustrated customer, it pauses automatically and alerts your team. Jump right into the chat from your dashboard without missing a beat.",
+      buttonText: "Explore the dashboard",
       features: [
-        "Deploy with Docker",
-        "Access the entire source code on Github"
+        "Smart Agent Escalation",
       ]
     },
     {
       id: 4,
-      title: "Self-host everything – including AI models",
-      description: "Protect your data by deploying on-prem.",
-      buttonText: "Deploy Now",
+      title: "Blazing Fast Responses",
+      description: "Speed kills cart abandonment. Powered by advanced semantic caching, our widget delivers instant answers to frequently asked questions, keeping your shoppers engaged and ready to buy.",
+      buttonText: "Learn about performance",
       features: [
-        "Deploy with Docker",
-        "Access the entire source code on Github"
+        "Zero-Wait Customer Support",
       ]
     },
     {
       id: 5,
-      title: "Self-host everything – including AI models",
-      description: "Protect your data by deploying on-prem.",
-      buttonText: "Deploy Now",
+      title: "Setup in Minutes, Not Weeks",
+      description: "No developer required. Just paste a single snippet of code into your Shopify, WooCommerce, or custom website, and your intelligent assistant is ready to chat with your customers.",
+      buttonText: "Get your snippet",
       features: [
-        "Deploy with Docker",
-        "Access the entire source code on Github",
+        "Universal Plug & Play Integration",
       ]
     }
   ];
 
   return (
-    <div className="min-h-screen bg-background text-primary relative overflow-hidden">
+    <div className="min-h-screen bg-background text-primary relative overflow-hidden pb-4">
       {/* Background gradient effect */}
       <div 
         ref={containerRef}
@@ -150,7 +144,7 @@ export default function Features() {
                 </button>
 
                 {/* Special content for first card */}
-                {card.id === 1 && (
+                {/* {card.id === 1 && (
                   <div className="mt-8 relative">
                     <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50">
                       <div className="flex items-center justify-center space-x-4">
@@ -168,7 +162,7 @@ export default function Features() {
                       </div>
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {/* Self hosted badge for third card */}
                 {card.id === 3 && (

@@ -7,6 +7,7 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 import { TicketsPanel } from '@/components/dashboard/tickets-panel'
 import { LiveConversation } from '@/components/dashboard/live-conversation'
+import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 
 export default function DashboardPage() {
   const { user, loading: userLoading } = useUser()
@@ -27,13 +28,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-muted rounded-lg p-8 text-center">
-          <p className="text-muted-foreground">Chargement du dashboard...</p>
-        </div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   return (

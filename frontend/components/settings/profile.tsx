@@ -4,6 +4,7 @@
 import * as React from "react"
 import { useState, useEffect } from "react"
 import { Upload, User as UserIcon } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -150,7 +151,7 @@ export default function ProfilePage(userData:
         </p>
       </div>
 
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Profile Picture</CardTitle>
           <CardDescription>
@@ -161,7 +162,7 @@ export default function ProfilePage(userData:
           <div className="flex items-center gap-6">
             <div className="relative">
               {profile.avatar_url ? (
-                <img
+                <Image
                   src={profile.avatar_url}
                   alt="Profile"
                   className="h-24 w-24 rounded-full object-cover"
@@ -183,7 +184,7 @@ export default function ProfilePage(userData:
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <Card>
         <CardHeader>

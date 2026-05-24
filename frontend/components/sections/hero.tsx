@@ -2,7 +2,7 @@
 import Link from 'next/link';
 
 import Spline from '@splinetool/react-spline/next';
-import { ScrollToDemoBtn } from '../ui/scroll-to-demo-btn';
+import { ScrollToDemoBtn } from '../ui/scroll-to-btn';
 
 export default function Hero() {
   return (

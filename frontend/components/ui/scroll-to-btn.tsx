@@ -1,5 +1,8 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { NavLink } from "../layout/navbar";
+
 export function ScrollToDemoBtn() {
     const handleClick = () => {
         document
@@ -19,4 +22,25 @@ export function ScrollToDemoBtn() {
             Request a Demo
         </button>
     );
+}
+
+export function ScrollToFeaturesBtn() {
+    const pathname = usePathname();
+    const handleClick = () => {
+        document
+            .getElementById("features")
+            ?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+                inline: "nearest",
+            });
+    };
+    return (
+        <NavLink href="#features"
+        active={pathname === "/features"}
+        onNavigate={handleClick}
+        >
+            Features
+          </NavLink>
+    )
 }
