@@ -4,10 +4,6 @@
 import asyncio
 import uuid
 from app.agent.constructor import get_runnable
-from app.agent.state import AgentState
-from app.config.db import SessionLocal
-from app.models.ticket import Ticket, TicketStatus
-from app.models.tenant import Tenant
 
 async def test_complete_workflow():
     """Test the complete workflow including escalation."""

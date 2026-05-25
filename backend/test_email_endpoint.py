@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Test the email endpoint for escalated tickets."""
 
-import asyncio
-import uuid
 
 from fastapi.testclient import TestClient
 

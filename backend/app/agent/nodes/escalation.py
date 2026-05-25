@@ -3,9 +3,7 @@
 from langchain_core.messages import AIMessage
 from langgraph.errors import GraphInterrupt
 from langgraph.types import interrupt
-
 from sqlalchemy import select, text, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.state import AgentState, build_escalation
 from app.config.db import SessionLocal
