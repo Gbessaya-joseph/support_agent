@@ -43,7 +43,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {toast} from "sonner"
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter'
 import {vscDarkPlus} from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { formatDistanceToNow } from "date-fns"
 import { createClient } from '@/utils/supabase/client'
 
 
