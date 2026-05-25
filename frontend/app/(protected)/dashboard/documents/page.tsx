@@ -28,13 +28,10 @@ import { DocumentsEmptyState } from "@/components/dashboard/documents/documents-
 import { PdfPreviewModal } from "@/components/dashboard/documents/pdf-preview-modal"
 import { toast } from "sonner"
 import { 
-  deleteDocument,
   // getDocuments, 
   // deleteDocument, 
   // updateDocument, 
-  getAllDocuments, 
   getDocuments,
-  updateDocument
 } from "@/app/actions/upload_document"
 import {
   Pagination,
@@ -45,8 +42,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { get } from "http"
-import { set } from "zod"
 import { DocumentsGridSkeleton, DocumentsTableSkeleton } from "@/components/dashboard/documents/document-skeleton"
 
 interface Document {
@@ -57,13 +52,6 @@ interface Document {
   download_url: string
 }
 
-interface DocumentsResponse {
-    documents: Document[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-}
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:8000"
 export default function DocumentsPage() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -113,7 +101,7 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     fetchDocuments()
-  }, [currentPage, sortBy, dateFilter, searchQuery])
+  }, [currentPage, sortBy, dateFilter, searchQuery, fetchDocuments])
 
   // Handle document actions
   const handleDownload = async (doc: Document) => {
@@ -239,7 +227,7 @@ export default function DocumentsPage() {
         </Select>
 
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-45">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -274,9 +262,9 @@ export default function DocumentsPage() {
       <div className="flex-1">
         {loading ? (
           viewMode === "grid" ? (
-            <DocumentsGridSkeleton count={2} />
+            <DocumentsGridSkeleton count={3} />
           ) : (
-            <DocumentsTableSkeleton count={2} />
+            <DocumentsTableSkeleton count={3} />
           )
         ) : documents.length === 0 ? (
           <DocumentsEmptyState onUploadClick={() => setUploadDialogOpen(true)} />

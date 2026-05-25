@@ -7,7 +7,7 @@ import { Moon, Sun, Monitor } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+// import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -250,7 +250,7 @@ export default function AccountPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Notifications</CardTitle>
           <CardDescription>
@@ -272,7 +272,7 @@ export default function AccountPage() {
             />
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {hasChanges && (
         <div className="flex items-center justify-end gap-3">
