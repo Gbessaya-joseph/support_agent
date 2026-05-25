@@ -3,7 +3,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Send, X, MessageCircle, Loader2 } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
 
+const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'http://localhost:5000'
 interface Message {
   id: string
   content: string
@@ -12,7 +14,10 @@ interface Message {
 }
 
 export function Chatbot() {
+  const supabase = createClient()
   const [isOpen, setIsOpen] = useState(false)
+  const [initchat, setInitChat] = useState(false)
+  const [initInfo, setInitInfo] = useState<{ token: string } | null>(null)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -33,6 +38,50 @@ export function Chatbot() {
     scrollToBottom()
   }, [messages])
 
+  const handleOpenChat = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+    setIsOpen(true)
+    // get tenant info and set welcome message
+    if (!initchat) {
+      // Simulate fetching tenant info (remplacez par votre API)
+      try {
+        const tenantResponse = await fetch(`${Backend_URL}/api/v1/admin/me`, {
+          method: 'GET',
+          headers: {
+            'content-type': 'application/json',
+            'authorization': `Bearer ${token}`
+          }
+        })
+        const tenantInfo = await tenantResponse.json()
+        //use tenantInfo to initialize the anonymous chat session
+        const initResponse = await fetch(`${Backend_URL}/api/v1/chat/init`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tenant_id: tenantInfo.tenant.id
+          })
+        })
+        const initInfo = await initResponse.json()
+        setInitInfo(initInfo)
+        console.log('Chat session initialized:', initInfo)
+        // Use tenantInfo to customize the welcome message
+        const welcomeMessage: Message = {
+          id: '1',
+          content: `Bonjour ${tenantInfo.name} ! Comment puis-je vous aider aujourd'hui ?`,
+          sender: 'bot',
+          timestamp: new Date()
+        }
+        setMessages([welcomeMessage])
+      } catch (error) {
+        console.error('Error fetching tenant info:', error)
+      }
+      setInitChat(true)
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return
 
@@ -47,11 +96,11 @@ export function Chatbot() {
     setInputValue('')
     setIsTyping(true)
 
-    // Simulate bot response (remplacez par votre API)
-    setTimeout(() => {
+    // call API to get bot response 
+    setTimeout(async () => {
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: getBotResponse(inputValue),
+        content: await getBotResponse(inputValue),
         sender: 'bot',
         timestamp: new Date()
       }
@@ -60,16 +109,68 @@ export function Chatbot() {
     }, 1500)
   }
 
-  const getBotResponse = (userInput: string): string => {
-    // Logique simple de réponse (à remplacer par votre API)
-    const input = userInput.toLowerCase()
-    if (input.includes('bonjour') || input.includes('salut')) {
-      return "Bonjour ! Ravi de vous parler. Comment puis-je vous assister ?"
+  const getBotResponse = async (userInput: string): Promise<string> => {
+    console.log(initInfo)
+    console.log('Fetching bot response for input:', userInput)
+    try {      
+      const response = await fetch(`${Backend_URL}/api/v1/chat/stream?token=${initInfo?.token}`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${initInfo?.token}`
+  },
+  body: JSON.stringify({ content: userInput })
+})
+
+const reader = response.body?.getReader()
+if (!reader) {
+  // Fallback: if streaming reader is not available, try to read full response
+  try {
+    const text = await response.text()
+    console.log("Fallback response:", text)
+    return text
+  } catch (err) {
+    console.error("No reader available and failed to read response.text():", err)
+    return ""
+  }
+}
+const decoder = new TextDecoder("utf-8")
+
+let fullText = ""
+
+while (true) {
+  const { done, value } = await reader.read()
+  if (done) break
+
+  const chunk = decoder.decode(value, { stream: true })
+  // Chaque chunk peut contenir plusieurs lignes "data: {...}"
+  chunk.split("\n").forEach(line => {
+    if (line.startsWith("data:")) {
+      const jsonStr = line.replace("data: ", "")
+      try {
+        const parsed = JSON.parse(jsonStr)
+        if (parsed.type === "token") {
+          fullText += parsed.content
+          console.log("AI chunk:", parsed.content)
+        } else if (parsed.type === "error") {
+          console.error("AI error:", parsed.content)
+        }
+      } catch (e) {
+        // ignorer les lignes non JSON
+      }
     }
-    if (input.includes('aide') || input.includes('help')) {
-      return "Je suis là pour vous aider ! Posez-moi n'importe quelle question."
+  })
+}
+
+
+      console.log("Réponse complète:", fullText)
+        // console.log('Bot response:', data)
+        // return data.reply || "Désolé, je n'ai pas compris votre demande."
+        return fullText || "Désolé, je n'ai pas compris votre demande."
+    } catch (error) {
+      console.error('Error fetching bot response:', error)
+      return "Désolé, une erreur est survenue. Veuillez réessayer."
     }
-    return "Je comprends votre message. Comment puis-je vous aider davantage ?"
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -83,7 +184,7 @@ export function Chatbot() {
     <>
       {/* Bouton flottant */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleOpenChat}
         className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-110 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         aria-label="Ouvrir le chat"
       >
@@ -149,7 +250,7 @@ export function Chatbot() {
                 <div className="bg-muted rounded-lg px-4 py-2 flex items-center gap-1">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm text-muted-foreground">
-                    En train d'écrire...
+                    thing...
                   </span>
                 </div>
               </div>
