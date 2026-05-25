@@ -29,11 +29,11 @@ const settingsNav = [
     href: "/dashboard/settings/preferences",
     icon: Sliders,
   },
-  {
-    title: "Data & Privacy",
-    href: "/dashboard/settings/data",
-    icon: Database,
-  },
+  // {
+  //   title: "Data & Privacy",
+  //   href: "/dashboard/settings/data",
+  //   icon: Database,
+  // },
   {
     title: "Domains",
     href: "/dashboard/settings/domains",
