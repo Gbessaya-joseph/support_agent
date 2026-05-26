@@ -32,14 +32,14 @@ class MessageResponse(BaseModel):
     sender_type: SenderType
     content: str
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 
 class ChatHistoryResponse(BaseModel):
     messages: list[MessageResponse]
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 

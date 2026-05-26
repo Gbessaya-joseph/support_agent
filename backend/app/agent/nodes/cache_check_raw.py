@@ -1,4 +1,4 @@
-"""Node for checking semantic cache before RAG pipeline."""
+"""Node for checking semantic cache with the raw user question before contextualization."""
 
 from langchain_core.messages import AIMessage
 from redis.exceptions import RedisError
@@ -10,31 +10,33 @@ from app.settings import settings
 from app.utils.logging_config import logger
 
 
-async def check_cache(state: AgentState) -> dict:
+async def check_cache_raw(state: AgentState) -> dict:
     """
-    Check semantic cache for similar queries before proceeding with RAG.
+    Check semantic cache using the raw user question.
 
-    Uses the rephrased (standalone) question set by the contextualize node,
-    so follow-up questions like "tell me more" get properly matched.
+    This runs BEFORE contextualization. If the raw question matches a cached
+    answer, we skip the LLM entirely (0 Gemini calls).  If it misses, the
+    contextualize node will rephrase the question and check_cache will run
+    a second time with the standalone version.
 
     Args:
         state (AgentState): The current state of the agent.
 
     Returns:
-        dict: Updated state with cache hit status and potentially cached response
+        dict: Updated state with cache hit status and potentially cached response.
     """
-    logger.info("---NODE: CHECK CACHE---")
+    logger.info("---NODE: CHECK CACHE (RAW)---")
 
     try:
-        rephrased_question = state.get("rephrased_question")
-        if not rephrased_question:
-            raise ValueError("No rephrased question found in agent state")
+        messages = state.get("messages")
+        if not messages:
+            raise ValueError("No messages found in agent state")
 
+        raw_question = messages[-1].content
         tenant_id = state["tenant_id"]
 
         model = get_embedding_model()
-
-        query_embedding = await model.aembed_query(rephrased_question)
+        query_embedding = await model.aembed_query(raw_question)
 
         cached_response = await semantic_cache.get_cached_response(
             tenant_id=tenant_id,
@@ -43,24 +45,26 @@ async def check_cache(state: AgentState) -> dict:
         )
 
         if cached_response:
-            logger.info("Cache hit - returning cached response")
+            logger.info("Raw cache hit - returning cached response")
             return {
                 "is_cache_hit": True,
                 "messages": [AIMessage(content=cached_response)],
+                "rephrased_question": raw_question,
                 "query_embedding": query_embedding,
                 "documents": [],
             }
 
-        logger.info("Cache miss - proceeding with RAG pipeline")
+        logger.info("Raw cache miss - proceeding to contextualize")
         return {
             "is_cache_hit": False,
             "query_embedding": query_embedding,
+            "rephrased_question": raw_question,
         }
 
     except (RedisError, ValueError, RuntimeError, OSError) as e:
-        logger.error(f"Cache check failed with specific error: {e}", exc_info=True)
+        logger.error(f"Raw cache check failed: {e}", exc_info=True)
         return {"is_cache_hit": False}
 
     except Exception as e:
-        logger.error(f"Cache check failed with unexpected error: {e}", exc_info=True)
+        logger.error(f"Raw cache check failed unexpectedly: {e}", exc_info=True)
         return {"is_cache_hit": False}

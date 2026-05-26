@@ -6,8 +6,6 @@ import uuid
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import StreamingResponse
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
