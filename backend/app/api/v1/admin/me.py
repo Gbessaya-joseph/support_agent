@@ -25,5 +25,5 @@ async def get_current_user_info(
             plan=current_user.tenant.plan,
             allowed_domains=current_user.tenant.allowed_domains,
         ),
-        preferences=UserPreferences(**current_user.preferences),
+        preferences=UserPreferences(**(current_user.preferences or {})),,
     )
