@@ -9,9 +9,11 @@ from langgraph.graph import END, START, StateGraph
 from app.agent.nodes.cache_check import check_cache
 from app.agent.nodes.cache_check_raw import check_cache_raw
 from app.agent.nodes.cache_update import cache_high_confidence_response
+from app.agent.nodes.classify_query import classify_query
 from app.agent.nodes.confidence import grade_confidence
 from app.agent.nodes.contextualize import contextualize_question
 from app.agent.nodes.escalation import escalate_to_human
+from app.agent.nodes.generate_greeting import generate_greeting
 from app.agent.nodes.generation import generate_response
 from app.agent.nodes.retrieval import retrieve_documents
 from app.agent.state import AgentState, build_escalation
@@ -44,6 +46,7 @@ graph.add_conditional_edges(
 
 graph.add_edge("retrieve", "generate")
 graph.add_edge("generate", "grade_confidence")
+graph.add_edge("generate_greeting", END)
 
 
 # Conditional edge: based on confidence score, either cache+end or escalate
@@ -149,9 +152,13 @@ async def stream_response(
                     yield json.dumps(
                         {"type": "status", "content": "Generating response..."}
                     )
-                elif name == "grade_confidence":
+                elif name == "classify_query":
                     yield json.dumps(
-                        {"type": "status", "content": "Verifying answer quality..."}
+                        {"type": "status", "content": "Understanding your request..."}
+                    )
+                elif name == "generate_greeting":
+                    yield json.dumps(
+                        {"type": "status", "content": "Preparing response..."}
                     )
 
             elif kind == "on_chain_end":
@@ -174,6 +181,20 @@ async def stream_response(
                             )
 
                         return  # End stream after cache hit
+
+                elif name == "generate_greeting":
+                    messages = output.get("messages", [])
+                    if messages:
+                        greeting_content = messages[0].content
+                        for i in range(0, len(greeting_content), 200):
+                            yield json.dumps(
+                                {
+                                    "type": "token",
+                                    "content": greeting_content[i : i + 200],
+                                }
+                            )
+
+                        return  # End stream after greeting
 
                 elif name == "generate":
                     messages = output.get("messages", [])

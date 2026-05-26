@@ -68,7 +68,7 @@ class AllowedDomainUpdateRequest(BaseModel):
 class AllowedDomainAddRequest(BaseModel):
     """Schema for adding one or more domains."""
 
-    domains: list[str] = Field(..., min_items=1, description="List of domains to add")
+    domains: list[str] = Field(..., min_length=1, description="List of domains to add")
 
     @field_validator("domains")
     @classmethod

@@ -5,7 +5,6 @@ from typing import Optional
 from langchain_postgres import PGEngine, PGVectorStore
 
 from app.agent.state import AgentState
-from app.services.embeddings import get_embedding_model
 from app.settings import settings
 from app.utils.logging_config import logger
 

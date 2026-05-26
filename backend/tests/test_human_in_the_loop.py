@@ -4,20 +4,16 @@ import asyncio
 import uuid
 
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.constructor import get_runnable, set_runnable
-from app.agent.state import AgentState
 from app.config.db import SessionLocal
-from app.main import app
 from app.models.message import Message, SenderType
 from app.models.ticket import Ticket, TicketStatus
 from app.services.cache import semantic_cache
 from app.services.embeddings import get_embedding_model
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import StateGraph, START
 
 
 @pytest.fixture(scope="session")

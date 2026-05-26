@@ -16,6 +16,7 @@ class AgentState(TypedDict):
     query_embedding: list[float] | None
     documents: list[Document]
     is_cache_hit: bool
+    is_greeting: bool
     confidence_score: float | None
     escalated: bool | None
     escalation_payload: dict | None
