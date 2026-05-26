@@ -1,5 +1,7 @@
 """Allowed domains admin endpoints."""
 
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,18 +18,28 @@ from app.utils.logging_config import logger
 router = APIRouter()
 
 
-@router.get("/allowed-domains", response_model=AllowedDomainsListResponse)
+def _verify_tenant_access(current_user: User, tenant_id: uuid.UUID) -> None:
+    if str(current_user.tenant_id) != str(tenant_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not have access to this tenant",
+        )
+
+
+@router.get("/{tenant_id}/allowed-domains", response_model=AllowedDomainsListResponse)
 async def get_allowed_domains(
+    tenant_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_rls_session),
 ) -> AllowedDomainsListResponse:
-    """Get list of allowed domains for the current tenant."""
-    tenant_id = current_user.tenant_id
+    """Get list of allowed domains for a tenant."""
     logger.info(
         f"User {current_user.id} requesting allowed domains for tenant {tenant_id}"
     )
 
     try:
+        _verify_tenant_access(current_user, tenant_id)
+
         domains = await TenantService.get_allowed_domains(str(tenant_id), db)
         return AllowedDomainsListResponse(
             tenant_id=tenant_id,
@@ -48,17 +60,19 @@ async def get_allowed_domains(
         ) from e
 
 
-@router.post("/allowed-domains", response_model=AllowedDomainsListResponse)
+@router.post("/{tenant_id}/allowed-domains", response_model=AllowedDomainsListResponse)
 async def add_allowed_domains(
+    tenant_id: uuid.UUID,
     request: AllowedDomainAddRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_rls_session),
 ) -> AllowedDomainsListResponse:
-    """Add one or more domains to the current tenant's allowed domains list."""
-    tenant_id = current_user.tenant_id
+    """Add one or more domains to a tenant's allowed domains list."""
     logger.info(f"User {current_user.id} adding domains to tenant {tenant_id}")
 
     try:
+        _verify_tenant_access(current_user, tenant_id)
+
         domains = await TenantService.add_allowed_domains(
             str(tenant_id), request.domains, db
         )
@@ -90,21 +104,23 @@ async def add_allowed_domains(
 
 
 @router.delete(
-    "/allowed-domains/{domain}",
+    "/{tenant_id}/allowed-domains/{domain}",
     response_model=AllowedDomainsListResponse,
 )
 async def remove_allowed_domain(
+    tenant_id: uuid.UUID,
     domain: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_rls_session),
 ) -> AllowedDomainsListResponse:
-    """Remove a domain from the current tenant's allowed domains list."""
-    tenant_id = current_user.tenant_id
+    """Remove a domain from a tenant's allowed domains list."""
     logger.info(
         f"User {current_user.id} removing domain '{domain}' from tenant {tenant_id}"
     )
 
     try:
+        _verify_tenant_access(current_user, tenant_id)
+
         domains = await TenantService.remove_allowed_domain(str(tenant_id), domain, db)
 
         logger.info(f"Removed domain '{domain}' from tenant {tenant_id}")
@@ -128,17 +144,19 @@ async def remove_allowed_domain(
         ) from e
 
 
-@router.put("/allowed-domains", response_model=AllowedDomainsListResponse)
+@router.put("/{tenant_id}/allowed-domains", response_model=AllowedDomainsListResponse)
 async def update_allowed_domain(
+    tenant_id: uuid.UUID,
     request: AllowedDomainUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_rls_session),
 ) -> AllowedDomainsListResponse:
-    """Update an existing domain in the current tenant's allowed domains list."""
-    tenant_id = current_user.tenant_id
+    """Update an existing domain in a tenant's allowed domains list."""
     logger.info(f"User {current_user.id} updating domain in tenant {tenant_id}")
 
     try:
+        _verify_tenant_access(current_user, tenant_id)
+
         domains = await TenantService.update_allowed_domain(
             str(tenant_id), request.old_domain, request.new_domain, db
         )

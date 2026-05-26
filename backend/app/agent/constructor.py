@@ -24,8 +24,6 @@ graph = StateGraph(AgentState)
 graph.add_node("check_cache_raw", check_cache_raw)
 graph.add_node("contextualize", contextualize_question)
 graph.add_node("check_cache", check_cache)
-graph.add_node("classify_query", classify_query)
-graph.add_node("generate_greeting", generate_greeting)
 graph.add_node("retrieve", retrieve_documents)
 graph.add_node("generate", generate_response)
 graph.add_node("grade_confidence", grade_confidence)
@@ -43,13 +41,7 @@ graph.add_conditional_edges(
 graph.add_edge("contextualize", "check_cache")
 graph.add_conditional_edges(
     "check_cache",
-    lambda state: END if state["is_cache_hit"] else "classify_query",
-)
-
-# Phase 3: classify as greeting or substantive
-graph.add_conditional_edges(
-    "classify_query",
-    lambda state: "generate_greeting" if state.get("is_greeting") else "retrieve",
+    lambda state: END if state["is_cache_hit"] else "retrieve",
 )
 
 graph.add_edge("retrieve", "generate")
