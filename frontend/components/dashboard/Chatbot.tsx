@@ -83,11 +83,12 @@ export function Chatbot() {
   }
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return
+    if (!inputValue.trim() || !initInfo) return
 
+    const userInput = inputValue
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: inputValue,
+      content: userInput,
       sender: 'user',
       timestamp: new Date()
     }
@@ -96,80 +97,129 @@ export function Chatbot() {
     setInputValue('')
     setIsTyping(true)
 
-    // call API to get bot response 
-    setTimeout(async () => {
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: await getBotResponse(inputValue),
-        sender: 'bot',
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, botMessage])
-      setIsTyping(false)
-    }, 1500)
-  }
-
-  const getBotResponse = async (userInput: string): Promise<string> => {
-    console.log(initInfo)
-    console.log('Fetching bot response for input:', userInput)
-    try {      
-      const response = await fetch(`${Backend_URL}/api/v1/chat/stream?token=${initInfo?.token}`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${initInfo?.token}`
-  },
-  body: JSON.stringify({ content: userInput })
-})
-
-const reader = response.body?.getReader()
-if (!reader) {
-  // Fallback: if streaming reader is not available, try to read full response
-  try {
-    const text = await response.text()
-    console.log("Fallback response:", text)
-    return text
-  } catch (err) {
-    console.error("No reader available and failed to read response.text():", err)
-    return ""
-  }
-}
-const decoder = new TextDecoder("utf-8")
-
-let fullText = ""
-
-while (true) {
-  const { done, value } = await reader.read()
-  if (done) break
-
-  const chunk = decoder.decode(value, { stream: true })
-  // Chaque chunk peut contenir plusieurs lignes "data: {...}"
-  chunk.split("\n").forEach(line => {
-    if (line.startsWith("data:")) {
-      const jsonStr = line.replace("data: ", "")
-      try {
-        const parsed = JSON.parse(jsonStr)
-        if (parsed.type === "token") {
-          fullText += parsed.content
-          console.log("AI chunk:", parsed.content)
-        } else if (parsed.type === "error") {
-          console.error("AI error:", parsed.content)
-        }
-      } catch (e) {
-        // ignorer les lignes non JSON
-      }
+    // Create initial bot message with typing indicator
+    const botMessageId = (Date.now() + 1).toString()
+    const botMessage: Message = {
+      id: botMessageId,
+      content: '',
+      sender: 'bot',
+      timestamp: new Date()
     }
-  })
-}
+    setMessages(prev => [...prev, botMessage])
 
+    // Stream response from API
+    try {
+      const response = await fetch(`${Backend_URL}/api/v1/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${initInfo.token}`
+        },
+        body: JSON.stringify({ content: userInput })
+      })
 
-      console.log("Réponse complète:", fullText)
-        // console.log('Bot response:', data)
-        // return data.reply || "Désolé, je n'ai pas compris votre demande."
-        return fullText || "Désolé, je n'ai pas compris votre demande."
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('Response body not readable')
+      }
+
+      const decoder = new TextDecoder('utf-8')
+      let isEscalation = false
+      let escalationContent = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        
+        // Parse SSE format: "data: {...}\n\n"
+        chunk.split('\n').forEach(line => {
+          if (line.startsWith('data:')) {
+            const jsonStr = line.replace(/^data:\s*/, '').trim()
+            if (!jsonStr) return
+
+            try {
+              const parsed = JSON.parse(jsonStr)
+              const msgType = parsed.type
+
+              if (msgType === 'status') {
+                // Update message with status indicator
+                console.log('Status:', parsed.content)
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === botMessageId
+                      ? { ...msg, content: `⏳ ${parsed.content}` }
+                      : msg
+                  )
+                )
+              } else if (msgType === 'token') {
+                // Append token content
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === botMessageId
+                      ? {
+                          ...msg,
+                          content: msg.content.replace(/^⏳ .*?\n/m, '') + parsed.content
+                        }
+                      : msg
+                  )
+                )
+              } else if (msgType === 'error') {
+                // Display error message
+                console.error('Error:', parsed.content)
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === botMessageId
+                      ? { ...msg, content: `Error: ${parsed.content}` }
+                      : msg
+                  )
+                )
+              } else if (msgType === 'escalation') {
+                // Handle escalation
+                isEscalation = true
+                escalationContent = JSON.stringify(parsed, null, 2)
+                console.warn('Escalation triggered:', parsed)
+                
+                const escalationMsg = `Votre demande a été escaladée à un agent humain.\n\nTicket ID: ${parsed.ticket_id}\n\nVotre question: ${parsed.user_question}`
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === botMessageId
+                      ? { ...msg, content: escalationMsg }
+                      : msg
+                  )
+                )
+              } else if (msgType === 'end') {
+                // Stream ended
+                console.log('Stream ended')
+              }
+            } catch (e) {
+              // Skip non-JSON lines
+              if (jsonStr.length > 0) {
+                console.debug('Non-JSON line:', jsonStr)
+              }
+            }
+          }
+        })
+      }
     } catch (error) {
-      console.error('Error fetching bot response:', error)
-      return "Désolé, une erreur est survenue. Veuillez réessayer."
+      console.error('Streaming error:', error)
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === botMessageId
+            ? {
+                ...msg,
+                content: '❌ Sorry, an error occurred while processing your request. Please try again.'
+              }
+            : msg
+        )
+      )
+    } finally {
+      setIsTyping(false)
     }
   }
 
