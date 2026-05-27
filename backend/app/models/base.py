@@ -6,7 +6,6 @@ from datetime import datetime
 from sqlalchemy import func, text
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from uuid_extensions import uuid7
 
 
 class Base(DeclarativeBase):

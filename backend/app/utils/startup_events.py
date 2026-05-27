@@ -1,12 +1,8 @@
-from typing import Optional
-
 from langchain_postgres import PGVectorStore
 from pydantic import PostgresDsn
 
 from app.agent.nodes import retrieval
-from app.services.cache import semantic_cache
 from app.services.embeddings import get_embedding_model
-from app.settings import settings
 from app.utils.logging_config import logger
 
 

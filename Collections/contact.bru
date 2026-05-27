@@ -1,20 +1,20 @@
 meta {
   name: contact
   type: http
-  seq: 15
+  seq: 16
 }
 
 post {
-  url: {{backend_base_url}}/api/v1/admin/contact
+  url: {{backend_base_url}}/api/v1/contact
   body: json
   auth: inherit
 }
 
 body:json {
   {
-    "email":{{test_email}},
-    "name":{{test_name}},
-    "message":{{test_message}}
+    "email":"{{test_email}}",
+    "name":"{{test_name}}",
+    "message":"{{test_message}}"
     
   }
 }

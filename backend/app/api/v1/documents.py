@@ -1,12 +1,8 @@
 """API endpoints for document management."""
 
-import asyncio
-import os
-
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid_extensions import uuid7 as uuid
 
 from app.api.deps import get_current_user, get_rls_session, reusable_oauth2
 from app.models.file import File, FileStatus
