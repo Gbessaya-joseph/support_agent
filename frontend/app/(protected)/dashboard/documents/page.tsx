@@ -96,7 +96,9 @@ export default function DocumentsPage() {
                 return;
             }
         } finally {
-            setLoading(false);
+            if (requestId === latestRequestIdRef.current) {
+                setLoading(false);
+            }
         }
     }, [currentPage, limit, sortBy, dateFilter, searchQuery]);
 
