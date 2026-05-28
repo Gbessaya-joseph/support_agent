@@ -3,10 +3,8 @@
 from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
-from redis.exceptions import RedisError
 
 from app.agent.state import AgentState
-from app.services.cache import semantic_cache
 from app.settings import settings
 from app.utils.logging_config import logger
 
@@ -48,11 +46,8 @@ async def generate_response(state: AgentState) -> dict:
     user_question = state["messages"][-1].content
     # Use rephrased question for generation context if available
     generation_question = state.get("rephrased_question") or user_question
-    
+
     documents = state["documents"]
-    tenant_id = state["tenant_id"]
-    is_cache_hit = state.get("is_cache_hit", False)
-    query_embedding = state.get("query_embedding")
 
     # Format the documents into a string for the prompt context
     context_str = "\n\n---\n\n".join(
@@ -61,12 +56,14 @@ async def generate_response(state: AgentState) -> dict:
 
     # Create the chain and invoke it
     chain = prompt | llm
-    response = await chain.ainvoke({"context": context_str, "question": generation_question})
-    
+    response = await chain.ainvoke(
+        {"context": context_str, "question": generation_question}
+    )
+
     response_content = response.content
     result = {"messages": [AIMessage(content=response_content)]}
-    
+
     # Note: Caching is now handled in a separate node after confidence evaluation
     # This ensures we only cache high-confidence answers
-    
+
     return result

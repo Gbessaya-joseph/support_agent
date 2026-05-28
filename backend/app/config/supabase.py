@@ -1,12 +1,18 @@
 """Supabase connection and client management."""
 
-from supabase import AsyncClient, Client, acreate_client, create_client, StorageException, SupabaseException
+import asyncio
+from typing import Optional
+
+from supabase import (
+    AsyncClient,
+    Client,
+    SupabaseException,
+    acreate_client,
+    create_client,
+)
 
 from app.settings import settings
 from app.utils.logging_config import logger
-
-import asyncio
-from typing import Optional
 
 _supabase_admin_client: Optional[AsyncClient] = None
 _supabase_admin_lock = asyncio.Lock()

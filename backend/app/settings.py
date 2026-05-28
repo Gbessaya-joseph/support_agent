@@ -32,10 +32,19 @@ class Settings(BaseSettings):
     )
     CACHE_TTL_SECONDS: int = Field(default=604800, alias="CACHE_TTL_SECONDS")  # 7 days
     MAX_FILE_SIZE: int = 40 * 1024 * 1024
-    CORS_ALLOWED_ORIGINS: list[str] = Field(
-        default=["*"], alias="CORS_ALLOWED_ORIGINS"
+    CORS_ALLOWED_ORIGINS: list[str] = Field(default=["*"], alias="CORS_ALLOWED_ORIGINS")
+    DOCUMENT_CONCURRENCY_LIMIT: int = Field(
+        default=5, alias="DOCUMENT_CONCURRENCY_LIMIT"
     )
-
+    RESEND_API_KEY: str = Field(..., alias="RESEND_API_KEY")
+    EMAIL_FROM_ADDRESS: str = Field(
+        default="Support Agent <onboarding@resend.dev>",
+        alias="EMAIL_FROM_ADDRESS",
+    )
+    EMAIL_NOTIFICATION_ADDRESS: str = Field(
+        default="notifications@example.com",
+        alias="EMAIL_NOTIFICATION_ADDRESS",
+    )
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

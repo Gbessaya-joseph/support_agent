@@ -1,12 +1,8 @@
 """API endpoints for document management."""
 
-import asyncio
-import os
-
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid_extensions import uuid7 as uuid
 
 from app.api.deps import get_current_user, get_rls_session, reusable_oauth2
 from app.models.file import File, FileStatus
@@ -55,7 +51,7 @@ async def upload_document(
         file_content = bytearray()
         chunk_size = 4096  # 4KB chunks
         total_size = 0
-        
+
         while chunk := await file.read(chunk_size):
             total_size += len(chunk)
             if total_size > settings.MAX_FILE_SIZE:
@@ -63,7 +59,7 @@ async def upload_document(
                     status_code=413, detail="File size exceeds the 40MB limit."
                 )
             file_content.extend(chunk)
-        
+
         # Convert to bytes for Celery task
         file_content = bytes(file_content)
     except Exception as e:
