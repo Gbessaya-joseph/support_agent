@@ -7,6 +7,8 @@ import {
     getTodayConversationCount,
     getResolvedPercentage,
     getHumanEscalationCount,
+    getTodayVsYesterdayDelta,
+    getThisWeekVsLastWeekDelta,
 } from "@/lib/utils/dashboard.utils";
 import { Badge } from "../ui/badge";
 
@@ -18,6 +20,8 @@ export function StatsCards({ conversations }: StatsCardsProps) {
     const stats = useMemo(
         () => ({
             todayCount: getTodayConversationCount(conversations),
+            todayVsYesterdayDelta: getTodayVsYesterdayDelta(conversations),
+            thisWeekVsLastWeekDelta: getThisWeekVsLastWeekDelta(conversations),
             resolvedPct: getResolvedPercentage(conversations),
             escalationCount: getHumanEscalationCount(conversations),
         }),
@@ -26,24 +30,24 @@ export function StatsCards({ conversations }: StatsCardsProps) {
 
     const statCards = [
         {
-            label: "Conversations aujourd'hui",
+            label: "Conversations today",
             value: stats.todayCount,
-            delta: "↑ +12 depuis hier",
+            delta: `${stats.todayVsYesterdayDelta >= 0 ? '↑' : '↓'} +${Math.abs(stats.todayVsYesterdayDelta)} since yesterday`,
             deltaColor: "text-white",
         },
         {
-            label: "Résolu par l'IA",
+            label: "Resolved by AI",
             value: `${stats.resolvedPct}%`,
-            delta: "↑ +3% cette semaine",
+            delta: `${stats.thisWeekVsLastWeekDelta >= 0 ? '↑' : '↓'} +${Math.abs(stats.thisWeekVsLastWeekDelta)}% this week`,
             deltaColor: "text-white",
         },
         {
-            label: "Escalades humaines",
+            label: "Human Escalations",
             value: stats.escalationCount,
             delta:
                 stats.escalationCount > 0
-                    ? `● ${stats.escalationCount} en attente`
-                    : "● 0 en attente",
+                    ? `● ${stats.escalationCount} awaiting attention`
+                    : "● 0 awaiting attention",
             deltaColor:
                 stats.escalationCount > 0 ? "text-amber-600" : "text-slate-600",
         },

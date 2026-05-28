@@ -38,12 +38,12 @@ export function DashboardHeader({
             {hasUrgentTickets ? (
               <>
                 <AlertCircle size={14} />
-                <span>{escalationCount} ticket{escalationCount > 1 ? 's' : ''} attendant</span>
+                <span>{escalationCount} ticket{escalationCount > 1 ? 's' : ''} awaiting attention</span>
               </>
             ) : (
               <>
                 <Check size={12} />
-                <span>Nouveau ticket — demande humain</span>
+                <span>New ticket — human request</span>
               </>
             )}
           </div>

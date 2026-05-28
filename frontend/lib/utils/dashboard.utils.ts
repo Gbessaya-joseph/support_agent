@@ -15,6 +15,62 @@ export function getTodayConversationCount(conversations: Conversation[]): number
 }
 
 /**
+ * calculer la difference de nombre de conversations d'aujourd'hui par rapport à hier
+ */
+export function getTodayVsYesterdayDelta(conversations: Conversation[]): number {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  const todayCount = conversations.filter((conv) => {
+    const convDate = new Date(conv.lastMessageAt)
+    convDate.setHours(0, 0, 0, 0)
+    return convDate.getTime() === today.getTime()
+  }).length
+
+  const yesterdayCount = conversations.filter((conv) => {
+    const convDate = new Date(conv.lastMessageAt)
+    convDate.setHours(0, 0, 0, 0)
+    return convDate.getTime() === yesterday.getTime()
+  }).length
+
+  return todayCount - yesterdayCount
+}
+
+/**
+ * calculer le pourcentage de conversation resolue cette semaine par rapport à la semaine dernière
+ */
+export function getThisWeekVsLastWeekDelta(conversations: Conversation[]): number {
+  const today = new Date()
+  const dayOfWeek = today.getDay() // 0 (Dimanche) à 6 (Samedi)
+
+  const thisWeekStart = new Date(today)
+  thisWeekStart.setDate(today.getDate() - dayOfWeek)
+  thisWeekStart.setHours(0, 0, 0, 0)
+
+  const lastWeekStart = new Date(thisWeekStart)
+  lastWeekStart.setDate(thisWeekStart.getDate() - 7)
+
+  const lastWeekEnd = new Date(thisWeekStart)
+  lastWeekEnd.setDate(thisWeekStart.getDate() - 1)
+
+  const thisWeekCount = conversations.filter((conv) => {
+    const convDate = new Date(conv.lastMessageAt)
+    return convDate >= thisWeekStart && convDate <= today
+  }).length
+
+  const lastWeekCount = conversations.filter((conv) => {
+    const convDate = new Date(conv.lastMessageAt)
+    return convDate >= lastWeekStart && convDate <= lastWeekEnd
+  }).length
+
+  if (lastWeekCount === 0) return thisWeekCount > 0 ? 100 : 0
+  return Math.round(((thisWeekCount - lastWeekCount) / lastWeekCount) * 100)
+}
+
+/**
  * Calcule le pourcentage de conversations résolues (status !== pending_human)
  */
 export function getResolvedPercentage(conversations: Conversation[]): number {
