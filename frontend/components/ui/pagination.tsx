@@ -38,26 +38,33 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 
 type PaginationLinkProps = {
   isActive?: boolean
+  disabled?: boolean
 } & Pick<React.ComponentProps<typeof Button>, "size"> &
   React.ComponentProps<"a">
 
 function PaginationLink({
   className,
   isActive,
+  disabled,
   size = "icon",
+  onClick,
   ...props
 }: PaginationLinkProps) {
   return (
     <a
       aria-current={isActive ? "page" : undefined}
+      aria-disabled={disabled ? true : undefined}
       data-slot="pagination-link"
       data-active={isActive}
       className={cn(
-        "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         isActive ? "border border-input bg-background" : "bg-transparent",
         size === "icon" || size === "icon-sm" || size === "icon-lg" ? "h-10 w-10" : "h-10 px-4 py-2",
+        disabled && "pointer-events-none opacity-50",
         className
       )}
+      onClick={disabled ? undefined : onClick}
+      tabIndex={disabled ? -1 : undefined}
       {...props}
     />
   )

@@ -7,10 +7,9 @@ import {
   FileText,
   Download,
   Trash2,
-  // Edit,
-  // Share2,
   Eye,
   MoreHorizontal,
+  Loader2,
 } from "lucide-react"
 import {
   Table,
@@ -52,6 +51,47 @@ import { formatDistanceToNow } from "date-fns"
 
 // Worker pdfjs — requis avec Next.js (App Router)
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+
+function TablePdfThumbnail({ url }: { url: string }) {
+  const [status, setStatus] = React.useState<"loading" | "success" | "error">("loading")
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [width, setWidth] = React.useState(30)
+
+  React.useEffect(() => {
+    if (!ref.current) return
+    const observer = new ResizeObserver(([entry]) => {
+      setWidth(entry.contentRect.width)
+    })
+    observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={ref} className="flex items-center gap-2 shrink-0">
+      {status === "loading" && (
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      )}
+      {status === "error" && (
+        <FileText className="h-5 w-5 text-red-400" />
+      )}
+      <Document
+        file={url}
+        onLoadSuccess={() => setStatus("success")}
+        onLoadError={() => setStatus("error")}
+        loading={null}
+        className={status === "success" ? "block" : "hidden"}
+      >
+        <Page
+          pageNumber={1}
+          width={width}
+          renderTextLayer={false}
+          renderAnnotationLayer={false}
+        />
+      </Document>
+    </div>
+  )
+}
+
 interface Document {
   id: string
   filename: string
@@ -75,8 +115,6 @@ export function DocumentsTable({
   onDelete,
   onPreview,
 }: DocumentsTableProps) {
-    const [status, setStatus] = React.useState<"loading" | "success" | "error">("loading")
-    const [width, setWidth] = React.useState(30)
   const [deleteDocumentId, setDeleteDocumentId] = React.useState<string | null>(null)
   // const [renameDocument, setRenameDocument] = React.useState<Document | null>(null)
   // const [newName, setNewName] = React.useState("")
@@ -90,7 +128,8 @@ export function DocumentsTable({
   const formatDate = (date: string) => {
     try {
       return formatDistanceToNow(new Date(date), { addSuffix: true })
-    } catch {
+    } catch (err) {
+      console.error("Failed to parse date:", date, err)
       return "Recently"
     }
   }
@@ -122,29 +161,7 @@ export function DocumentsTable({
               <TableRow key={document.id} className="group">
                 <TableCell>
                   <div className="flex items-center gap-3">
-                  {/* Fallback si erreur (CORS, token expiré…) */}
-                        {status === "error" && (
-                          <div className="flex flex-col items-center gap-2">
-                            <FileText className="h-5 w-5 text-red-400" />
-                            <span className="text-xs text-muted-foreground">Aperçu indisponible</span>
-                          </div>
-                        )}
-                  
-                        {/* Rendu réel de la 1ère page via react-pdf */}
-                        <Document
-                          file={document.download_url}
-                          onLoadSuccess={() => setStatus("success")}
-                          onLoadError={() => setStatus("error")}
-                          loading={null}
-                          className={status === "success" ? "block" : "hidden"}
-                        >
-                          <Page
-                            pageNumber={1}
-                            width={width}
-                            renderTextLayer={false}
-                            renderAnnotationLayer={false}
-                          />
-                        </Document>
+                    <TablePdfThumbnail url={document.download_url} />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium truncate">{document.filename}</p>
                     </div>

@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { cache } from 'react'
 
 export interface UploadDocumentResponse {
   file_id: string
@@ -88,7 +87,7 @@ export async function uploadDocument(
   }
 }
 
-export const getDocuments = cache(async function getDocuments(params: {
+export async function getDocuments(params: {
   page: number
   limit: number
   sort: string
@@ -111,7 +110,7 @@ export const getDocuments = cache(async function getDocuments(params: {
     sort: params.sort,
     date_filter: params.date_filter,
     search: params.search,
-  })
+}
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 120_000)
