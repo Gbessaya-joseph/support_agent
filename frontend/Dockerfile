@@ -3,46 +3,55 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY pnpm-lock.yaml ./
-COPY pnpm-workspace.yaml ./
+# Install pnpm (v9 — does not enforce build script approval)
+RUN npm install -g pnpm@9
 
-# Install dependencies
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+# Copier les fichiers de dépendances
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Copy source code
+# Installer toutes les dépendances (dev inclus pour build)
+RUN pnpm install --frozen-lockfile
+
+# Copier le code source
 COPY . .
 
-# Build the application
+# Build Next.js
 RUN pnpm run build
 
 # Production stage
 FROM node:22-alpine
 
+# Créer un utilisateur non-root
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
-# Install pnpm in production image
-RUN npm install -g pnpm
+# Install pnpm (v9 — does not enforce build script approval)
+RUN npm install -g pnpm@9
 
-# Copy package files from builder
-COPY package*.json ./
-COPY pnpm-lock.yaml ./
-COPY pnpm-workspace.yaml ./
+# Copier les fichiers de dépendances
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+# Installer uniquement les dépendances de prod
+RUN pnpm install --prod --frozen-lockfile
 
-# Copy built application from builder
+# Copier l’application buildée
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.ts ./
 
-# Expose port
+# Donner les droits à appuser
+RUN chown -R appuser:appgroup /app
+
+# Passer en utilisateur non-root
+USER appuser
+
+# Exposer le port
 EXPOSE 3000
 
-# Health check
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
-# Start the application
+# Démarrer l’application
 CMD ["pnpm", "start"]
