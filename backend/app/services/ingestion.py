@@ -7,7 +7,6 @@ import tempfile
 import uuid
 
 import fitz
-from fastembed import TextEmbedding
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy.orm import Session
 from supabase import StorageException
@@ -120,12 +119,17 @@ def ingest_pdf(file_id: str, tenant_id: str, storage_path: str):
             chunks_with_pages = []
             for page_idx, page_text in enumerate(extracted_texts):
                 # Clean text: remove NUL characters and normalize whitespace
-                cleaned_text = page_text.replace('\x00', '').replace('\r\n', '\n').replace('\r', '\n').strip()
+                cleaned_text = (
+                    page_text.replace("\x00", "")
+                    .replace("\r\n", "\n")
+                    .replace("\r", "\n")
+                    .strip()
+                )
                 if cleaned_text:  # Only process non-empty text
                     page_chunks = text_splitter.split_text(cleaned_text)
                     for chunk in page_chunks:
                         # Clean each chunk as well
-                        cleaned_chunk = chunk.replace('\x00', '').strip()
+                        cleaned_chunk = chunk.replace("\x00", "").strip()
                         if cleaned_chunk:
                             chunks_with_pages.append((cleaned_chunk, page_idx))
 

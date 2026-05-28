@@ -4,7 +4,6 @@ Test script to verify the refactored cache implementation.
 """
 
 import asyncio
-import os
 
 # from dotenv import load_dotenv
 from app.services.cache import semantic_cache
