@@ -145,8 +145,14 @@ export default function DocumentsPage() {
 
             if (!response.ok) throw new Error("Delete failed");
 
-            setDocuments(documents.filter((doc) => doc.id !== documentId));
-            setTotalDocuments(totalDocuments - 1);
+            setDocuments((prev) => prev.filter((d) => d.id !== documentId));
+            setTotalDocuments((prev) => {
+                const newTotal = prev - 1;
+                const newTotalPages = Math.max(1, Math.ceil(newTotal / limit));
+                setTotalPages(newTotalPages);
+                setCurrentPage((p) => Math.min(p, newTotalPages));
+                return newTotal;
+            });
         } catch (error) {
             if (error instanceof Error) {
                 toast.error(`Failed to delete document: ${error.message}`, {
