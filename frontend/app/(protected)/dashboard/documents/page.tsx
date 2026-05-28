@@ -2,8 +2,8 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useRef } from "react";
-import { Search, Filter, Grid3x3, List, Plus, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Filter, Grid3x3, List, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,9 +22,10 @@ import { DocumentsEmptyState } from "@/components/dashboard/documents/documents-
 import { PdfPreviewModal } from "@/components/dashboard/documents/pdf-preview-modal";
 import { toast } from "sonner";
 import {
+    // getDocuments,
+    // deleteDocument,
+    // updateDocument,
     getDocuments,
-    deleteDocument,
-    updateDocument,
 } from "@/app/actions/upload_document";
 import {
     Pagination,
@@ -35,23 +36,21 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+    DocumentsGridSkeleton,
+    DocumentsTableSkeleton,
+} from "@/components/dashboard/documents/document-skeleton";
 
 interface Document {
     id: string;
     filename: string;
-    size: number;
-    uploaded_at: string;
-    url: string;
+    file_size: number;
+    created_at: string;
+    download_url: string;
 }
 
-interface DocumentsResponse {
-    documents: Document[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-}
-
+const BACKEND_BASE_URL =
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:8000";
 export default function DocumentsPage() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [searchQuery, setSearchQuery] = useState("");
@@ -67,10 +66,11 @@ export default function DocumentsPage() {
     );
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
-    const limit = 12;
-    const latestRequestIdRef = useRef(0);
+    const DEFAULT_PAGE_SIZE = 12;
+    const limit = DEFAULT_PAGE_SIZE;
+    const latestRequestIdRef = React.useRef(0);
 
-    const fetchDocuments = async () => {
+    const fetchDocuments = React.useCallback(async () => {
         const requestId = ++latestRequestIdRef.current;
         setLoading(true);
         try {
@@ -82,89 +82,87 @@ export default function DocumentsPage() {
                 search: searchQuery,
             });
 
+            // Only update state if this is the latest request
             if (requestId !== latestRequestIdRef.current) return;
 
-            setDocuments(response.documents.map((doc) => ({
-                id: doc.id,
-                filename: doc.filename,
-                size: doc.file_size,
-                uploaded_at: doc.created_at,
-                url: doc.download_url,
-            })));
+            setDocuments(response.documents);
             setTotalDocuments(response.count);
-            setTotalPages(Math.max(1, Math.ceil(response.count / limit)));
+            setTotalPages(Math.ceil(response.count / limit));
         } catch (error) {
-            toast.error("Failed to load documents. Please try again.");
+            if (error instanceof Error) {
+                toast.error(`Failed to load documents: ${error.message}`, {
+                    position: "bottom-right",
+                });
+                return;
+            }
         } finally {
-            setLoading(false);
+            if (requestId === latestRequestIdRef.current) {
+                setLoading(false);
+            }
         }
-    };
+    }, [currentPage, limit, sortBy, dateFilter, searchQuery]);
 
     useEffect(() => {
         fetchDocuments();
-    }, [currentPage, sortBy, dateFilter, searchQuery]);
+    }, [currentPage, sortBy, dateFilter, searchQuery, fetchDocuments]);
 
     // Handle document actions
     const handleDownload = async (doc: Document) => {
         try {
-            const a = document.createElement("a");
-            a.href = doc.url;
+            const response = await fetch(doc.download_url);
+            if (!response.ok) {
+                throw new Error(
+                    `Download failed: ${response.status} ${response.statusText}`,
+                );
+            }
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a") as HTMLAnchorElement;
+            a.href = url;
             a.download = doc.filename;
             document.body.appendChild(a);
             a.click();
+            window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
 
             toast.success("Document downloaded successfully.");
         } catch (error) {
-            toast.error("Failed to download document.");
+            toast.error("Failed to download document.", {
+                position: "bottom-right",
+            });
         }
     };
 
     const handleDelete = async (documentId: string) => {
         try {
-            await deleteDocument(documentId);
-
-            setDocuments(documents.filter((doc) => doc.id !== documentId));
-            setTotalDocuments(totalDocuments - 1);
-
-            toast.success("Document deleted successfully.");
-        } catch (error) {
-            toast.error("Failed to delete document.", {
-                position: "bottom-right",
-            });
-        }
-    };
-
-    const handleRename = async (documentId: string, newName: string) => {
-        try {
-            await updateDocument(documentId, { filename: newName });
-
-            setDocuments(
-                documents.map((doc) =>
-                    doc.id === documentId ? { ...doc, filename: newName } : doc,
-                ),
+            const response = await fetch(
+                `${BACKEND_BASE_URL}/api/v1/admin/documents/${documentId}`,
+                {
+                    method: "DELETE",
+                    credentials: "include",
+                },
             );
 
-            toast.success("Document renamed successfully.");
-        } catch (error) {
-            toast.error("Failed to rename document.", {
-                position: "bottom-right",
-            });
-        }
-    };
+            if (!response.ok) throw new Error("Delete failed");
 
-    const handleShare = async (documentId: string) => {
-        try {
-            const document = documents.find((doc) => doc.id === documentId);
-            if (!document) return;
-
-            await navigator.clipboard.writeText(document.url);
-
-            toast.info("Document link copied to clipboard.", {
-                position: "bottom-right",
+            setDocuments((prev) => prev.filter((d) => d.id !== documentId));
+            setTotalDocuments((prev) => {
+                const newTotal = prev - 1;
+                const newTotalPages = Math.max(1, Math.ceil(newTotal / limit));
+                setTotalPages(newTotalPages);
+                setCurrentPage((p) => Math.min(p, newTotalPages));
+                return newTotal;
             });
         } catch (error) {
-            toast.error("Failed to copy link.", { position: "bottom-right" });
+            if (error instanceof Error) {
+                toast.error(`Failed to delete document: ${error.message}`, {
+                    position: "bottom-right",
+                });
+            } else {
+                toast.error("Failed to delete document.", {
+                    position: "bottom-right",
+                });
+            }
         }
     };
 
@@ -173,7 +171,7 @@ export default function DocumentsPage() {
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full space-y-6 m-4">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -191,7 +189,7 @@ export default function DocumentsPage() {
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl">
-                        <PdfUploader onCancel={() => setUploadDialogOpen(false)} />
+                        <PdfUploader />
                     </DialogContent>
                 </Dialog>
             </div>
@@ -209,7 +207,7 @@ export default function DocumentsPage() {
                 </div>
 
                 <Select value={dateFilter} onValueChange={setDateFilter}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-45">
                         <Filter className="mr-2 h-4 w-4" />
                         <SelectValue placeholder="Filter by date" />
                     </SelectTrigger>
@@ -222,7 +220,7 @@ export default function DocumentsPage() {
                 </Select>
 
                 <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-45">
                         <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
@@ -256,9 +254,11 @@ export default function DocumentsPage() {
             {/* Content */}
             <div className="flex-1">
                 {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
+                    viewMode === "grid" ? (
+                        <DocumentsGridSkeleton count={3} />
+                    ) : (
+                        <DocumentsTableSkeleton count={3} />
+                    )
                 ) : documents.length === 0 ? (
                     <DocumentsEmptyState
                         onUploadClick={() => setUploadDialogOpen(true)}
@@ -271,8 +271,8 @@ export default function DocumentsPage() {
                                 document={document}
                                 onDownload={handleDownload}
                                 onDelete={handleDelete}
-                                onRename={handleRename}
-                                onShare={handleShare}
+                                // onRename={handleRename}
+                                // onShare={handleShare}
                                 onPreview={handlePreview}
                             />
                         ))}
@@ -282,8 +282,8 @@ export default function DocumentsPage() {
                         documents={documents}
                         onDownload={handleDownload}
                         onDelete={handleDelete}
-                        onRename={handleRename}
-                        onShare={handleShare}
+                        // onRename={handleRename}
+                        // onShare={handleShare}
                         onPreview={handlePreview}
                     />
                 )}

@@ -110,7 +110,7 @@ export async function getDocuments(params: {
     sort: params.sort,
     date_filter: params.date_filter,
     search: params.search,
-  })
+}
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 120_000)
@@ -142,7 +142,7 @@ export async function getDocuments(params: {
     }
     throw error
   }
-}
+})
 
 // get all documents without pagination (for export)
 export async function getAllDocuments(): Promise<DocumentListResponse> {
