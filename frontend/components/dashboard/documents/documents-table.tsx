@@ -72,7 +72,10 @@ function TablePdfThumbnail({ url }: { url: string }) {
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       )}
       {status === "error" && (
-        <FileText className="h-5 w-5 text-red-400" />
+        <>
+          <FileText className="h-5 w-5 text-red-400" aria-hidden="true" />
+          <span className="sr-only">Preview unavailable</span>
+        </>
       )}
       <Document
         file={url}
