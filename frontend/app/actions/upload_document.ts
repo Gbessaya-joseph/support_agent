@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { cache } from 'react'
 
 export interface UploadDocumentResponse {
   file_id: string
@@ -87,7 +88,7 @@ export async function uploadDocument(
   }
 }
 
-export async function getDocuments(params: {
+export const getDocuments = cache(async function getDocuments(params: {
   page: number
   limit: number
   sort: string
@@ -142,7 +143,7 @@ export async function getDocuments(params: {
     }
     throw error
   }
-}
+})
 
 // get all documents without pagination (for export)
 export async function getAllDocuments(): Promise<DocumentListResponse> {
