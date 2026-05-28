@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
-import { ReplyIcon, ForwardIcon } from "lucide-react";
+import { Reply, Forward, ForwardIcon, ReplyIcon } from "lucide-react";
 
 function MessageHeader(user: {
   name: string;
@@ -21,10 +21,10 @@ function MessageHeader(user: {
     <div>
         {/* Placeholder for message actions like reply, forward, etc. */}
         <Button variant="ghost" size="icon">
-            <ReplyIcon />
+            <Reply />
         </Button>
         <Button variant="ghost" size="icon">
-            <ForwardIcon />
+            <Forward />
         </Button>
     </div>
   </div>;
@@ -42,11 +42,11 @@ function MessageFooter(date: string) {
     Sent on: {date}
     <div className="flex my-4 gap-4">
       <Button>
-        <ReplyIcon />
+        <Reply />
         <span className="">Reply</span>
       </Button>
       <Button className="ml-2">
-        <ForwardIcon />
+        <Forward />
         <span className="">Forward</span>
       </Button>
     </div>

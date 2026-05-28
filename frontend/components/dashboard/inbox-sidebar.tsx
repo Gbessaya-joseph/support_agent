@@ -86,17 +86,17 @@ interface InboxSidebarProps extends React.ComponentProps<typeof Sidebar> {
     selectedConversationId?: string;
 }
 
-export function InboxSidebar({
+export const InboxSidebar = ({
     onConversationSelect,
     selectedConversationId,
     ...props
-}: InboxSidebarProps) {
+}: InboxSidebarProps) => {
     const [filter, setFilter] = React.useState<ConversationStatus>("all");
     const [search, setSearch] = React.useState("");
     // routeur pour navigation programmatique
     const router = useRouter();
 
-    // Appeler le hook directement
+    // directly use the hook to get conversations, loading state and error
     const {
         conversations: fetchedConversations,
         loading,
@@ -121,8 +121,9 @@ export function InboxSidebar({
     return (
         <Sidebar
             collapsible="none"
-            className="hidden md:flex border-r w-80"
+            className="hidden md:flex border-r w-80 h-screen bg-background"
             {...props}
+            variant="inset"
         >
             <SidebarHeader className="gap-3 border-b p-4">
                 <div className="flex w-full items-center justify-between">
@@ -185,7 +186,7 @@ export function InboxSidebar({
                         <Inbox className="w-12 h-12 mb-3 opacity-50" />
                         <p className="text-sm mb-4">{error}</p>
                         <button
-                            onClick={refetch}
+                            onClick={() => refetch()}
                             disabled={loading}
                             className="text-xs font-semibold px-3 py-2 rounded-lg bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50"
                         >
@@ -200,7 +201,7 @@ export function InboxSidebar({
                             <SidebarGroupContent>
                                 {filteredConversations.map((conv) => {
                                     const StatusIcon =
-                                        statusConfig[conv.status].icon;
+                                        statusConfig[conv.status]?.icon;
                                     const isSelected =
                                         selectedConversationId ===
                                         conv.ticketId;
@@ -209,10 +210,12 @@ export function InboxSidebar({
                                         <button
                                             key={conv.ticketId}
                                             onClick={() => {
-                                                onConversationSelect?.(conv.ticketId)
+                                                onConversationSelect?.(
+                                                    conv.ticketId,
+                                                );
                                                 router.push(
                                                     `/dashboard/inbox/?conversation=${encodeURIComponent(conv.ticketId)}`,
-                                                )
+                                                );
                                             }}
                                             className={cn(
                                                 "w-full flex items-start gap-3 p-4 border-b transition-colors text-left",
@@ -233,7 +236,7 @@ export function InboxSidebar({
                                                         "absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white",
                                                         statusConfig[
                                                             conv.status
-                                                        ].color,
+                                                        ]?.color,
                                                     )}
                                                 />
                                             </div>
@@ -258,11 +261,11 @@ export function InboxSidebar({
                                                         variant="outline"
                                                         className="text-xs"
                                                     >
-                                                        <StatusIcon className="w-3 h-3 mr-1" />
+                                                        {StatusIcon && <StatusIcon className="w-3 h-3 mr-1" />}
                                                         {
                                                             statusConfig[
                                                                 conv.status
-                                                            ].label
+                                                            ]?.label
                                                         }
                                                     </Badge>
 
@@ -290,7 +293,7 @@ export function InboxSidebar({
                                 )}
                             </SidebarGroupContent>
                         </SidebarGroup>
-                    </ScrollArea>
+                       </ScrollArea>
                 )}
             </SidebarContent>
         </Sidebar>
