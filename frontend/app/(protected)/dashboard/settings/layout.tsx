@@ -9,7 +9,7 @@ import {
   Settings as SettingsIcon, 
   Database, 
   Sliders,
-  Globe
+  Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -34,6 +34,11 @@ const settingsNav = [
   //   href: "/dashboard/settings/data",
   //   icon: Database,
   // },
+  {
+    title: "Data & Privacy",
+    href: "/dashboard/settings/data",
+    icon: Database,
+  },
   {
     title: "Domains",
     href: "/dashboard/settings/domains",
