@@ -121,7 +121,7 @@ export const InboxSidebar = ({
     return (
         <Sidebar
             collapsible="none"
-            className="hidden md:flex border-r w-80 h-screen bg-background"
+            className="hidden md:flex border-r w-80 h-full min-h-0 bg-background"
             {...props}
             variant="inset"
         >
@@ -261,7 +261,9 @@ export const InboxSidebar = ({
                                                         variant="outline"
                                                         className="text-xs"
                                                     >
-                                                        {StatusIcon && <StatusIcon className="w-3 h-3 mr-1" />}
+                                                        {StatusIcon && (
+                                                            <StatusIcon className="w-3 h-3 mr-1" />
+                                                        )}
                                                         {
                                                             statusConfig[
                                                                 conv.status
@@ -293,9 +295,9 @@ export const InboxSidebar = ({
                                 )}
                             </SidebarGroupContent>
                         </SidebarGroup>
-                       </ScrollArea>
+                    </ScrollArea>
                 )}
             </SidebarContent>
         </Sidebar>
     );
-}
+};

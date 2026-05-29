@@ -96,6 +96,7 @@ export function Chatbot() {
           Authorization: `Bearer ${token}`,
         },
       })
+      if (!tenantRes.ok) throw new Error(`Failed to fetch tenant: ${tenantRes.status}`)
       const tenantInfo = await tenantRes.json()
 
       const initRes = await fetch(`${BACKEND_URL}/api/v1/chat/init`, {
@@ -103,6 +104,7 @@ export function Chatbot() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tenant_id: tenantInfo.tenant.id }),
       })
+      if (!initRes.ok) throw new Error(`Failed to init chat: ${initRes.status}`)
       const init: InitInfo = await initRes.json()
       setInitInfo(init)
 
@@ -110,15 +112,15 @@ export function Chatbot() {
       setMessages([
         {
           id: 'welcome',
-          content: `Bonjour ${tenantInfo.name} ! Comment puis-je vous aider aujourd'hui ?`,
+          content: `Bonjour ${tenantInfo.tenant.name} ! Comment puis-je vous aider aujourd'hui ?`,
           sender: 'bot',
           timestamp: new Date(),
         },
       ])
+      setInitialized(true)
     } catch (err) {
       console.error('Init error:', err)
-    } finally {
-      setInitialized(true)
+      setInitialized(false)
     }
   }
 
@@ -252,7 +254,7 @@ export function Chatbot() {
 
     setIsSendingEmail(true)
     try {
-      await fetch(`${BACKEND_URL}/api/v1/chat/tickets/${data.ticket_id}/email`, {
+      const res = await fetch(`${BACKEND_URL}/api/v1/chat/tickets/${data.ticket_id}/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${initInfo?.token}` },
         body: JSON.stringify({
@@ -261,6 +263,7 @@ export function Chatbot() {
           // user_question: data.user_question,
         }),
       })
+      if (!res.ok) throw new Error(`Email API error: ${res.status}`)
 
       addMessage({
         sender: 'bot',
@@ -365,7 +368,7 @@ export function Chatbot() {
               <div className="flex justify-start">
                 <div className="bg-muted rounded-lg px-4 py-2 flex items-center gap-2">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  <span className="text-sm text-muted-foreground">En train décrire...</span>
+                  <span className="text-sm text-muted-foreground">En train d'écrire...</span>
                 </div>
               </div>
             )}

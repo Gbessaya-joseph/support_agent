@@ -1,7 +1,6 @@
 // app/dashboard/inbox/layout.tsx
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { InboxSidebar} from "@/components/dashboard/inbox-sidebar";
@@ -15,16 +14,7 @@ export default function InboxLayout({
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    // Synchronise selectedId à chaque changement d'URL
-    const [selectedId, setSelectedId] = useState<string | undefined>(
-        searchParams.get("conversation") ?? undefined
-    );
-
-    useEffect(() => {
-        const conversationId = searchParams.get("conversation") ?? undefined;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSelectedId(conversationId);
-    }, [searchParams]);
+    const selectedId = searchParams.get("conversation") ?? undefined;
 
     return (
         <SidebarProvider>
@@ -36,8 +26,7 @@ export default function InboxLayout({
                     selectedConversationId={selectedId}
                 />
                 <main className="flex-1 h-screen overflow-hidden">
-                    <ChatView conversationId={selectedId} />
-                    {children}
+                    {selectedId ? <ChatView conversationId={selectedId} /> : children}
                 </main>
             </div>
         </SidebarProvider>
