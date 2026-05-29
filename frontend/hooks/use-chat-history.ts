@@ -169,6 +169,7 @@ export function useChatHistory() {
 export function useConversationMessages(ticketId?: string) {
     const supabase = createClient();
     const [messages, setMessages] = useState<Message[]>([]);
+    const [status, setStatus] = useState<"open" | "pending_human" | null>(null);
     const [user, setUser] = useState<{
         id: string;
         name: string;
@@ -219,6 +220,7 @@ export function useConversationMessages(ticketId?: string) {
 
             // Les messages sont déjà au bon format selon l'interface
             setMessages(data.messages);
+            setStatus(data.status);
             // setUser(data.user)
         } catch (err) {
             console.error("Error fetching messages:", err);
@@ -238,6 +240,33 @@ export function useConversationMessages(ticketId?: string) {
         try {
             const { data: { session } } = await supabase.auth.getSession()
             const token = session?.access_token
+            const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
+
+            if (status === "pending_human") {
+                const response = await fetch(
+                    `${BACKEND_BASE_URL}/api/v1/admin/tickets/${ticketId}/resume`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            ...authHeaders,
+                        },
+                        body: JSON.stringify({
+                            answer: content,
+                            notify_email: true,
+                        }),
+                    },
+                )
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Failed to resolve ticket: ${response.statusText}`,
+                    )
+                }
+
+                setStatus("open")
+                return
+            }
 
             const response = await fetch(
                 `${BACKEND_BASE_URL}/api/v1/admin/conversations/${ticketId}/messages`,
@@ -245,7 +274,7 @@ export function useConversationMessages(ticketId?: string) {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                        ...authHeaders,
                     },
                     body: JSON.stringify({ content }),
                 },
@@ -273,6 +302,7 @@ export function useConversationMessages(ticketId?: string) {
         user,
         loading,
         error,
+        status,
         sendMessage,
         refetch: fetchMessages,
     };
