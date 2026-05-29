@@ -87,11 +87,7 @@ export default function Message() {
     if (!message) return null;
     return (
         <div>
-            <MessageComponent
-                user={message.user}
-                content={message.content}
-                date={message.date}
-            />
+            
         </div>
     );
 }
