@@ -1,22 +1,5 @@
 ---
 services:
-    db:
-        image: pgvector/pgvector:pg17
-        env_file: .env
-        ports:
-            - "5433:5432"
-        volumes:
-            - pgdata:/var/lib/postgresql/data
-        healthcheck:
-            test:
-                [
-                    "CMD-SHELL",
-                    'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"',
-                ]
-            interval: 5s
-            timeout: 5s
-            retries: 5
-
     redis:
         image: redis/redis-stack:7.4.0-v8
         ports:
@@ -53,9 +36,9 @@ services:
                     "-c",
                     "import urllib.request; exit(0 if urllib.request.urlopen('http://localhost:8000/health').status == 200 else 1)",
                 ]
-            interval: 10s
-            timeout: 5s
-            retries: 5
+            interval: 180s
+            timeout: 30s
+            retries: 3
             start_period: 15s
         command:
             [
@@ -127,5 +110,4 @@ services:
                 condition: service_healthy
 
 volumes:
-    pgdata:
     redis_data:

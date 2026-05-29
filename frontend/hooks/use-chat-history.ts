@@ -236,18 +236,18 @@ export function useConversationMessages(ticketId?: string) {
         if (!ticketId) return;
 
         try {
+            const { data: { session } } = await supabase.auth.getSession()
+            const token = session?.access_token
+
             const response = await fetch(
-                `${BACKEND_BASE_URL}/api/v1/chat/history/${ticketId}/messages/`,
+                `${BACKEND_BASE_URL}/api/v1/admin/conversations/${ticketId}/messages`,
                 {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        // 'Authorization': `Bearer ${token}`,
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     },
-                    body: JSON.stringify({
-                        content,
-                        sender: "admin",
-                    }),
+                    body: JSON.stringify({ content }),
                 },
             );
 

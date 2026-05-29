@@ -8,10 +8,11 @@ from sqlalchemy import and_, func, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_rls_session
-from app.models.message import Message
+from app.models.message import Message, SenderType
 from app.models.ticket import Ticket, TicketStatus
 from app.models.user import User
 from app.schemas.chat import (
+    AdminMessageRequest,
     ChatMessageItem,
     ConversationListItem,
     ConversationListQueryParams,
@@ -224,4 +225,66 @@ async def get_conversation_messages(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve messages",
+        ) from e
+
+
+@router.post(
+    "/{ticket_id}/messages",
+    response_model=ChatMessageItem,
+    status_code=status.HTTP_201_CREATED,
+)
+async def send_admin_message(
+    ticket_id: uuid.UUID,
+    request: AdminMessageRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_rls_session),
+) -> ChatMessageItem:
+    """
+    Send a message as an admin to a conversation.
+    """
+    logger.info(f"Admin {current_user.id} sending message to ticket {ticket_id}")
+
+    try:
+        ticket_result = await db.execute(
+            select(Ticket).where(
+                Ticket.id == ticket_id,
+                Ticket.tenant_id == current_user.tenant_id,
+            )
+        )
+        ticket = ticket_result.scalar_one_or_none()
+
+        if not ticket:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Ticket not found",
+            )
+
+        message = Message(
+            tenant_id=current_user.tenant_id,
+            ticket_id=ticket_id,
+            sender_type=SenderType.HUMAN_AGENT,
+            content=request.content,
+        )
+        db.add(message)
+        await db.commit()
+        await db.refresh(message)
+
+        return ChatMessageItem(
+            id=message.id,
+            sender_type=message.sender_type,
+            content=message.content,
+            created_at=message.created_at.isoformat(),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(
+            f"Failed to send admin message for ticket {ticket_id}: {e}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send message",
         ) from e

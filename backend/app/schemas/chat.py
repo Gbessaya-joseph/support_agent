@@ -140,6 +140,17 @@ class ChatMessageItem(BaseModel):
     created_at: str
 
 
+class AdminMessageRequest(BaseModel):
+    """Request model for admin sending a message to a conversation."""
+
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,
+        description="Admin message content (1-10000 characters)",
+    )
+
+
 class ConversationMessagesResponse(BaseModel):
     """Response model for full conversation messages (chat view)."""
 

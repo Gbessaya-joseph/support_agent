@@ -2,7 +2,7 @@
 export interface Message {
   id: string
   content: string
-  sender_type: "user" | "bot" | "admin"
+  sender_type: "user" | "bot" | "admin" | "human_agent"
   created_at: string
 }
 
@@ -12,7 +12,7 @@ export interface Conversation {
   userAvatar?: string
   lastMessageAt: Date
   lastMessageContent: string
-  lastMessageSender: "user" | "bot" | "admin"
+  lastMessageSender: "user" | "bot" | "admin" | "human_agent"
   timestamp: string
   status: "open" | "pending_human"
   messageCount: number
