@@ -10,6 +10,7 @@ import {
     Send,
     Trash2,
     Plus,
+    Settings,
 } from "lucide-react";
 import { NavUser } from "@/components/dashboard/nav-user";
 import { getAvatarColor } from "@/lib/utils/avatar.utils";
@@ -54,6 +55,11 @@ const navItems = [
         title: "Documents",
         url: "/dashboard/documents",
         icon: FileInput,
+    },
+    {
+        title: "Settings",
+        url: "/dashboard/settings",
+        icon: Settings,
     },
 ];
 
