@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.message import SenderType
 from app.models.ticket import TicketStatus
@@ -32,15 +32,13 @@ class MessageResponse(BaseModel):
     sender_type: SenderType
     content: str
 
-    class ConfigDict:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ChatHistoryResponse(BaseModel):
     messages: list[MessageResponse]
 
-    class ConfigDict:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdminResolveRequest(BaseModel):

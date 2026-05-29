@@ -111,7 +111,7 @@ export const getDocuments = cache(async function getDocuments(params: {
     sort: params.sort,
     date_filter: params.date_filter,
     search: params.search,
-  })
+}
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 120_000)

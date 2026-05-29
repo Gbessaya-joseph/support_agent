@@ -55,7 +55,7 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
         if (!inputValue.trim()) return;
 
         const id = `optimistic-${Date.now()}`;
@@ -72,8 +72,13 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
         setOptimisticMessages((prev) => [...prev, newMessage]);
         setInputValue("");
 
-        // Envoi réel via le hook (si implémenté)
-        sendMessage?.(inputValue);
+        try {
+            await sendMessage?.(inputValue);
+        } finally {
+            // Retirer le message optimiste une fois le serveur répond
+            setOptimisticMessages((prev) => prev.filter((m) => m.id !== id));
+            localIdsRef.current.delete(id);
+        }
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -83,7 +88,10 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
         }
     };
 
+<<<<<<< frontend-inbox
     // Pas de conversation sélectionnée
+=======
+>>>>>>> main
     if (!conversationId) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">

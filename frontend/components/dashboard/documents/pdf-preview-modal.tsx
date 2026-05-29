@@ -68,6 +68,9 @@ export function PdfPreviewModal({ document, onClose }: PdfPreviewModalProps) {
   const handleDownload = async () => {
     try {
       const response = await fetch(document.download_url)
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`)
+      }
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = window.document.createElement("a")
@@ -79,6 +82,7 @@ export function PdfPreviewModal({ document, onClose }: PdfPreviewModalProps) {
       window.document.body.removeChild(a)
     } catch (err) {
       console.error("Download failed:", err)
+      toast.error("Failed to download document.")
     }
   }
 

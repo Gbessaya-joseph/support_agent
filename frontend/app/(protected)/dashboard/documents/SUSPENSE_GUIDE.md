@@ -41,13 +41,13 @@ export default function DocumentsPage() {
 // documents-content.tsx (RSC - côté serveur)
 // ============================================================================
 /*
-import { getAllDocuments } from "@/app/actions/upload_document"
+import { getDocuments } from "@/app/actions/upload_document"
 import { DocumentCard } from "@/components/dashboard/documents/document-card"
 import { DocumentsEmptyState } from "@/components/dashboard/documents/documents-empty-state"
 
-export async function DocumentsContent() {
+export async function DocumentsContent({ page = 1 }: { page?: number }) {
   // Fetch côté serveur - pas d'état, pas d'useEffect
-  const response = await getAllDocuments()
+  const response = await getDocuments({ page, limit: 10 })
 
   if (!response.documents || response.documents.length === 0) {
     return <DocumentsEmptyState onUploadClick={() => {}} />
@@ -61,8 +61,6 @@ export async function DocumentsContent() {
           document={document}
           onDownload={handleDownload}
           onDelete={handleDelete}
-          onRename={handleRename}
-          onShare={handleShare}
           onPreview={handlePreview}
         />
       ))}

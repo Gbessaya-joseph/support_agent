@@ -28,7 +28,7 @@ async def generate_greeting(state: AgentState) -> dict:
     logger.info("---NODE: GENERATE GREETING---")
 
     messages = state.get("messages", [])
-    user_text = messages[-1].content.strip().lower() if messages else ""
+    user_text = messages[-1].content.strip().lower().strip(",.!?;:") if messages else ""
 
     if user_text in ("thanks", "thank you", "thx", "ty", "thankyou"):
         response = random.choice(_THANKS_RESPONSES)

@@ -55,6 +55,7 @@ export function getThisWeekVsLastWeekDelta(conversations: Conversation[]): numbe
 
   const lastWeekEnd = new Date(thisWeekStart)
   lastWeekEnd.setDate(thisWeekStart.getDate() - 1)
+  lastWeekEnd.setHours(23, 59, 59, 999)
 
   const thisWeekCount = conversations.filter((conv) => {
     const convDate = new Date(conv.lastMessageAt)

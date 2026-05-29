@@ -124,3 +124,8 @@ app.include_router(contact_router, prefix="/api/v1/contact", tags=["Contact"])
 @app.get("/")
 def read_root() -> dict[str, str]:
     return {"message": "Hello from the Support Agent API!"}
+
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "healthy"}
