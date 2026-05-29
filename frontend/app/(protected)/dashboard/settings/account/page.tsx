@@ -18,7 +18,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {toast} from "sonner"
-import { createClient } from '@/utils/supabase/client'
+import { getToken } from '@/utils/supabase/get-token'
 
 interface AccountPreferences {
   language: string
@@ -94,6 +94,7 @@ export default function AccountPage() {
   const { theme, setTheme } = useTheme()
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -110,12 +111,6 @@ export default function AccountPage() {
   useEffect(() => {
     fetchPreferences()
   }, [])
-
-  const getToken = async () => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token
-  }
 
   const fetchPreferences = async () => {
     try {
@@ -139,8 +134,11 @@ export default function AccountPage() {
           email_notifications: prefs.email_notifications ?? true,
         })
       }
+      setLoadFailed(false)
     } catch (error) {
       console.error("Failed to load preferences:", error)
+      setLoadFailed(true)
+      toast.error("Failed to load your preferences. Please refresh the page.", { position: "top-right" })
     } finally {
       setLoading(false)
     }
@@ -319,7 +317,7 @@ export default function AccountPage() {
           >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || loadFailed}>
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         </div>

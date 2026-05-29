@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { createClient } from '@/utils/supabase/client'
+import { getToken } from '@/utils/supabase/get-token'
 
 interface UserPreferences {
   default_view: "grid" | "list"
@@ -88,12 +88,6 @@ export default function PreferencesPage() {
   useEffect(() => {
     fetchPreferences()
   }, [])
-
-  const getToken = async () => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token
-  }
 
   const fetchPreferences = async () => {
     try {

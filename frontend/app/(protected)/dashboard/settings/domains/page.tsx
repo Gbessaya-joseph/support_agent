@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import {toast} from "sonner"
-import { createClient } from '@/utils/supabase/client'
+import { getToken } from '@/utils/supabase/get-token'
 
 
 function AllowedDomainsSkeleton() {
@@ -79,6 +79,7 @@ function AllowedDomainsSkeleton() {
 
 export default function AllowedDomainsPage() {
   const [allowedDomains, setAllowedDomains] = useState<string[]>([])
+  const [tenantId, setTenantId] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -94,17 +95,21 @@ export default function AllowedDomainsPage() {
   }, [])
 
   const fetchAllowedDomains = async () => {
-    const supabase = createClient()
-    // Récupérer le token juste avant la requête
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
     try {
+      const token = await getToken()
+      if (!token) throw new Error('No authentication token available')
+
+      const meRes = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/me`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (!meRes.ok) throw new Error("Failed to fetch tenant info")
+      const meData = await meRes.json()
+      const tid = meData.tenant.id
+      setTenantId(tid)
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tid}/allowed-domains`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json',
@@ -125,19 +130,21 @@ export default function AllowedDomainsPage() {
   }
 
   const handleAddDomain = async () => {
-    const supabase = createClient()
-    // Récupérer le token juste avant la requête
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
+    const token = await getToken()
     if (!newDomainValue.trim()) {
       toast.error("Please enter a domain", { position: "top-right" })
+      return
+    }
+
+    if (!tenantId) {
+      toast.error("Tenant not loaded. Please refresh.", { position: "top-right" })
       return
     }
 
     try {
       setCreating(true)
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains`,
         {
           method: "POST",
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -165,10 +172,7 @@ export default function AllowedDomainsPage() {
   }
 
   const handleEditDomain = async () => {
-    const supabase = createClient()
-    // Récupérer le token juste avant la requête
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
+    const token = await getToken()
 
     if (!editingDomain || !newDomainValue.trim()) {
       toast.error("Please enter a domain", { position: "top-right" })
@@ -180,10 +184,15 @@ export default function AllowedDomainsPage() {
       return
     }
 
+    if (!tenantId) {
+      toast.error("Tenant not loaded. Please refresh.", { position: "top-right" })
+      return
+    }
+
     try {
       setUpdating(true)
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains`,
         {
           method: "PUT",
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -213,13 +222,16 @@ export default function AllowedDomainsPage() {
   }
 
   const handleDeleteDomain = async (domain: string) => {
-    const supabase = createClient()
-    // Récupérer le token juste avant la requête
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
+    const token = await getToken()
+
+    if (!tenantId) {
+      toast.error("Tenant not loaded. Please refresh.", { position: "top-right" })
+      return
+    }
+
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains/${domain}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains/${encodeURIComponent(domain)}`,
         {
           method: "DELETE",
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
