@@ -83,7 +83,10 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
         }
     };
 
+<<<<<<< frontend-inbox
     // Pas de conversation sélectionnée
+=======
+>>>>>>> main
     if (!conversationId) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
