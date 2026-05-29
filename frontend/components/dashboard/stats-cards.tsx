@@ -32,13 +32,13 @@ export function StatsCards({ conversations }: StatsCardsProps) {
         {
             label: "Conversations today",
             value: stats.todayCount,
-            delta: `${stats.todayVsYesterdayDelta >= 0 ? '↑' : '↓'} +${Math.abs(stats.todayVsYesterdayDelta)} since yesterday`,
+            delta: `${stats.todayVsYesterdayDelta >= 0 ? '↑' : '↓'} ${Math.abs(stats.todayVsYesterdayDelta)} since yesterday`,
             deltaColor: "text-white",
         },
         {
             label: "Resolved by AI",
             value: `${stats.resolvedPct}%`,
-            delta: `${stats.thisWeekVsLastWeekDelta >= 0 ? '↑' : '↓'} +${Math.abs(stats.thisWeekVsLastWeekDelta)}% this week`,
+            delta: `${stats.thisWeekVsLastWeekDelta >= 0 ? '↑' : '↓'} ${Math.abs(stats.thisWeekVsLastWeekDelta)}% this week`,
             deltaColor: "text-white",
         },
         {

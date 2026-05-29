@@ -1,4 +1,4 @@
-// app/dashboard/settings/api-keys/page.tsx
+// app/dashboard/settings/domains/page.tsx
 "use client"
 
 import * as React from "react"
@@ -8,7 +8,6 @@ import {
   Trash2,
   Edit2,
   Globe,
-  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,9 +40,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import {toast} from "sonner"
-import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter'
-import {vscDarkPlus} from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { createClient } from '@/utils/supabase/client'
+import { getToken } from '@/utils/supabase/get-token'
 
 
 function AllowedDomainsSkeleton() {
@@ -82,6 +79,7 @@ function AllowedDomainsSkeleton() {
 
 export default function AllowedDomainsPage() {
   const [allowedDomains, setAllowedDomains] = useState<string[]>([])
+  const [tenantId, setTenantId] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -97,17 +95,21 @@ export default function AllowedDomainsPage() {
   }, [])
 
   const fetchAllowedDomains = async () => {
-    const supabase = createClient()
-    // Récupérer le token juste avant la requête
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
     try {
+      const token = await getToken()
+      if (!token) throw new Error('No authentication token available')
+
+      const meRes = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/me`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (!meRes.ok) throw new Error("Failed to fetch tenant info")
+      const meData = await meRes.json()
+      const tid = meData.tenant.id
+      setTenantId(tid)
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tid}/allowed-domains`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json',
@@ -128,19 +130,21 @@ export default function AllowedDomainsPage() {
   }
 
   const handleAddDomain = async () => {
-    const supabase = createClient()
-    // Récupérer le token juste avant la requête
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
+    const token = await getToken()
     if (!newDomainValue.trim()) {
       toast.error("Please enter a domain", { position: "top-right" })
+      return
+    }
+
+    if (!tenantId) {
+      toast.error("Tenant not loaded. Please refresh.", { position: "top-right" })
       return
     }
 
     try {
       setCreating(true)
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains`,
         {
           method: "POST",
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -168,10 +172,7 @@ export default function AllowedDomainsPage() {
   }
 
   const handleEditDomain = async () => {
-    const supabase = createClient()
-    // Récupérer le token juste avant la requête
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
+    const token = await getToken()
 
     if (!editingDomain || !newDomainValue.trim()) {
       toast.error("Please enter a domain", { position: "top-right" })
@@ -183,10 +184,15 @@ export default function AllowedDomainsPage() {
       return
     }
 
+    if (!tenantId) {
+      toast.error("Tenant not loaded. Please refresh.", { position: "top-right" })
+      return
+    }
+
     try {
       setUpdating(true)
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains`,
         {
           method: "PUT",
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -216,13 +222,16 @@ export default function AllowedDomainsPage() {
   }
 
   const handleDeleteDomain = async (domain: string) => {
-    const supabase = createClient()
-    // Récupérer le token juste avant la requête
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token
+    const token = await getToken()
+
+    if (!tenantId) {
+      toast.error("Tenant not loaded. Please refresh.", { position: "top-right" })
+      return
+    }
+
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/allowed-domains/${domain}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/tenants/${tenantId}/allowed-domains/${encodeURIComponent(domain)}`,
         {
           method: "DELETE",
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -247,31 +256,6 @@ export default function AllowedDomainsPage() {
     setNewDomainValue(domain)
     setShowEditDialog(true)
   }
-
-  const reactComponentCode = `// Example: Calling your API from an allowed domain
-const apiUrl = '${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}';
-
-async function callAPI() {
-  try {
-    const response = await fetch(\`\${apiUrl}/api/v1/documents/upload\`, {
-      method: 'POST',
-      credentials: 'include', // Sends cookies for auth
-      body: formData
-    });
-
-    if (!response.ok) {
-      throw new Error('Request failed');
-    }
-
-    const data = await response.json();
-    console.log('Success:', data);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-
-// Note: This request will only succeed if your domain
-// is in the allowed domains list above`
 
   if (loading) {
     return <AllowedDomainsSkeleton />
@@ -402,42 +386,6 @@ async function callAPI() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* React Component Example */}
-      <Card>
-        <CardHeader>
-          <CardTitle>React Component Example</CardTitle>
-          <CardDescription>
-            Sample code for calling your API from an allowed domain
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <SyntaxHighlighter
-              language="javascript"
-              style={vscDarkPlus}
-              customStyle={{
-                borderRadius: "0.5rem",
-                fontSize: "0.875rem",
-              }}
-            >
-              {reactComponentCode}
-            </SyntaxHighlighter>
-            <Button
-              variant="outline"
-              size="sm"
-              className="absolute top-2 right-2"
-              onClick={() => {
-                navigator.clipboard.writeText(reactComponentCode)
-                toast.success("Copied to clipboard", { position: "bottom-right" })
-              }}
-            >
-              <Check className="mr-2 h-4 w-4" />
-              Copy
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteDomainId} onOpenChange={() => setDeleteDomainId(null)}>

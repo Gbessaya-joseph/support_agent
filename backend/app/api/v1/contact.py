@@ -11,15 +11,20 @@ router = APIRouter()
 
 
 class ContactFormRequest(BaseModel):
-    name: str = Field("", max_length=255)
+    name: str = Field(..., min_length=3, max_length=255)
     email: EmailStr
     message: str = Field(..., min_length=10, max_length=5000)
 
 
-@router.post("", response_model=dict)
+class ContactResponse(BaseModel):
+    success: bool
+    message: str
+
+
+@router.post("", response_model=ContactResponse)
 async def send_contact_email(
     request: ContactFormRequest,
-):
+) -> ContactResponse:
     """
     Send a contact form email.
 
@@ -34,7 +39,7 @@ async def send_contact_email(
             message=request.message,
         )
 
-        return {"success": True, "message": "Email sent successfully"}
+        return ContactResponse(success=True, message="Email sent successfully")
 
     except ResendError as e:
         logger.error(f"Failed to send contact email: {e}", exc_info=True)

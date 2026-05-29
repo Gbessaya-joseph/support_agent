@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.message import SenderType
 from app.models.ticket import TicketStatus
@@ -32,15 +32,13 @@ class MessageResponse(BaseModel):
     sender_type: SenderType
     content: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ChatHistoryResponse(BaseModel):
     messages: list[MessageResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdminResolveRequest(BaseModel):
@@ -140,6 +138,17 @@ class ChatMessageItem(BaseModel):
     sender_type: SenderType
     content: str
     created_at: str
+
+
+class AdminMessageRequest(BaseModel):
+    """Request model for admin sending a message to a conversation."""
+
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,
+        description="Admin message content (1-10000 characters)",
+    )
 
 
 class ConversationMessagesResponse(BaseModel):

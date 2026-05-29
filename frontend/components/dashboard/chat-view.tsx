@@ -23,13 +23,19 @@ interface ChatViewProps {
 
 export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
     // ✅ Plus de messages hardcodés — état vide par défaut
-    const [optimisticMessages, setOptimisticMessages] = React.useState<Message[]>([]);
+    const [optimisticMessages, setOptimisticMessages] = React.useState<
+        Message[]
+    >([]);
     const [inputValue, setInputValue] = React.useState("");
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
     const localIdsRef = React.useRef<Set<string>>(new Set());
 
-    const { messages: fetchedMessages, loading, error, sendMessage } =
-        useConversationMessages(conversationId);
+    const {
+        messages: fetchedMessages,
+        loading,
+        error,
+        sendMessage,
+    } = useConversationMessages(conversationId);
 
     // ✅ Reset des messages optimistes quand on change de conversation
     React.useEffect(() => {
@@ -42,11 +48,12 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
     const messages = React.useMemo(() => {
         const fetchedIds = new Set((fetchedMessages ?? []).map((m) => m.id));
         const pendingOptimistic = optimisticMessages.filter(
-            (m) => !fetchedIds.has(m.id)
+            (m) => !fetchedIds.has(m.id),
         );
         return [...(fetchedMessages ?? []), ...pendingOptimistic].sort(
             (a, b) =>
-                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime(),
         );
     }, [fetchedMessages, optimisticMessages]);
 
@@ -55,7 +62,7 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
         if (!inputValue.trim()) return;
 
         const id = `optimistic-${Date.now()}`;
@@ -72,8 +79,13 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
         setOptimisticMessages((prev) => [...prev, newMessage]);
         setInputValue("");
 
-        // Envoi réel via le hook (si implémenté)
-        sendMessage?.(inputValue);
+        try {
+            await sendMessage?.(inputValue);
+        } finally {
+            // Retirer le message optimiste une fois le serveur répond
+            setOptimisticMessages((prev) => prev.filter((m) => m.id !== id));
+            localIdsRef.current.delete(id);
+        }
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -83,12 +95,13 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
         }
     };
 
-    // Pas de conversation sélectionnée
     if (!conversationId) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
                 <Inbox className="w-16 h-16 mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">No conversation selected</h3>
+                <h3 className="text-lg font-medium mb-2">
+                    No conversation selected
+                </h3>
                 <p className="text-sm">
                     Select a conversation from the sidebar to start chatting
                 </p>
@@ -125,12 +138,13 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
             {/* Messages */}
             <ScrollArea className="flex-1 p-6 bg-muted/50 overflow-scroll">
                 <div className="space-y-4 max-w-4xl mx-auto">
-
                     {/* Loading */}
                     {loading && (
                         <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            <span className="text-sm">Chargement des messages...</span>
+                            <span className="text-sm">
+                                Chargement des messages...
+                            </span>
                         </div>
                     )}
 
@@ -152,8 +166,9 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
                     {messages.map((message) => {
                         const isUser = message.sender_type === "user";
                         const isBot = message.sender_type === "bot";
-                        const isAdmin = message.sender_type === "admin";
-                        const isOptimistic = message.id.startsWith("optimistic-");
+                        const isAdmin = message.sender_type === "admin" || message.sender_type === "human_agent";
+                        const isOptimistic =
+                            message.id.startsWith("optimistic-");
                         const messageDate = new Date(message.created_at);
 
                         return (
@@ -161,7 +176,7 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
                                 key={message.id}
                                 className={cn(
                                     "flex gap-3",
-                                    isAdmin && "flex-row-reverse"
+                                    isAdmin && "flex-row-reverse",
                                 )}
                             >
                                 {/* Avatar */}
@@ -177,10 +192,14 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
                                                     isAdmin
                                                         ? "bg-gradient-to-br from-green-500 to-teal-600"
                                                         : "bg-gradient-to-br from-cyan-400 to-purple-600",
-                                                    "text-white"
+                                                    "text-white",
                                                 )}
                                             >
-                                                {isAdmin ? "A" : message.sender_type?.charAt(0) || "U"}
+                                                {isAdmin
+                                                    ? "A"
+                                                    : message.sender_type?.charAt(
+                                                          0,
+                                                      ) || "U"}
                                             </AvatarFallback>
                                         </Avatar>
                                     )}
@@ -190,18 +209,33 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
                                 <div
                                     className={cn(
                                         "flex flex-col gap-1 max-w-[70%]",
-                                        isAdmin && "items-end"
+                                        isAdmin && "items-end",
                                     )}
                                 >
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        {isBot && <span className="font-medium">Bot Assistant</span>}
-                                        {isUser && <span className="font-medium">User</span>}
-                                        {isAdmin && <span className="font-medium">You (Admin)</span>}
+                                        {isBot && (
+                                            <span className="font-medium">
+                                                Bot Assistant
+                                            </span>
+                                        )}
+                                        {isUser && (
+                                            <span className="font-medium">
+                                                User
+                                            </span>
+                                        )}
+                                        {isAdmin && (
+                                            <span className="font-medium">
+                                                You (Admin)
+                                            </span>
+                                        )}
                                         <span>
-                                            {messageDate.toLocaleTimeString([], {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            })}
+                                            {messageDate.toLocaleTimeString(
+                                                [],
+                                                {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                },
+                                            )}
                                         </span>
                                     </div>
 
@@ -210,8 +244,9 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
                                             "rounded-2xl px-4 py-2 text-sm",
                                             isBot && "bg-muted",
                                             isUser && "bg-secondary",
-                                            isAdmin && "bg-primary text-primary-foreground",
-                                            isOptimistic && "opacity-60"
+                                            isAdmin &&
+                                                "bg-primary text-primary-foreground",
+                                            isOptimistic && "opacity-60",
                                         )}
                                     >
                                         {message.content}
@@ -219,7 +254,9 @@ export function ChatView({ conversationId, conversationUser }: ChatViewProps) {
 
                                     {/* Indicateur envoi en cours */}
                                     {isOptimistic && (
-                                        <span className="text-xs text-muted-foreground">Envoi...</span>
+                                        <span className="text-xs text-muted-foreground">
+                                            Envoi...
+                                        </span>
                                     )}
                                 </div>
                             </div>

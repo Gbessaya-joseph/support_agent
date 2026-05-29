@@ -1,17 +1,11 @@
 // app/dashboard/documents/page.tsx
 "use client";
 
-import * as React from "react"
-import { useState, useEffect } from "react"
-import { 
-  Search, 
-  Filter, 
-  Grid3x3, 
-  List, 
-  Plus
-} from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import * as React from "react";
+import { useState, useEffect } from "react";
+import { Search, Filter, Grid3x3, List, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -34,25 +28,35 @@ import {
   getDocuments,
 } from "@/app/actions/upload_document"
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import { DocumentsGridSkeleton, DocumentsTableSkeleton } from "@/components/dashboard/documents/document-skeleton"
+    // getDocuments,
+    // deleteDocument,
+    // updateDocument,
+    getDocuments,
+} from "@/app/actions/upload_document";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+    DocumentsGridSkeleton,
+    DocumentsTableSkeleton,
+} from "@/components/dashboard/documents/document-skeleton";
 
 interface Document {
-  id: string
-  filename: string
-  file_size: number
-  created_at: string
-  download_url: string
+    id: string;
+    filename: string;
+    file_size: number;
+    created_at: string;
+    download_url: string;
 }
 
-const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:8000"
+const BACKEND_BASE_URL =
+    process.env.NEXT_PUBLIC_BACKEND_BASE_URL || "http://localhost:8000";
 export default function DocumentsPage() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [searchQuery, setSearchQuery] = useState("");
@@ -68,7 +72,8 @@ export default function DocumentsPage() {
     );
     const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
-    const limit = 2          
+    const DEFAULT_PAGE_SIZE = 12;
+    const limit = DEFAULT_PAGE_SIZE;
     const latestRequestIdRef = React.useRef(0);
 
     const fetchDocuments = React.useCallback(async () => {
@@ -84,109 +89,279 @@ export default function DocumentsPage() {
             });
 
             // Only update state if this is the latest request
-        if (requestId !== latestRequestIdRef.current) return;
+            if (requestId !== latestRequestIdRef.current) return;
 
-      setDocuments(response.documents)
-      setTotalDocuments(response.count)
-      setTotalPages(Math.ceil(response.count / limit))
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(`Failed to load documents: ${error.message}`, { position: "bottom-right" })
-        return
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [currentPage, limit, sortBy, dateFilter, searchQuery])
-
-  useEffect(() => {
-    fetchDocuments()
-  }, [currentPage, sortBy, dateFilter, searchQuery, fetchDocuments])
-
-  // Handle document actions
-  const handleDownload = async (doc: Document) => {
-    try {
-      const response = await fetch(doc.download_url)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a") as HTMLAnchorElement
-      a.href = url
-      a.download = doc.filename
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast.success("Document downloaded successfully.")
-    } catch (error) {
-      toast.error("Failed to download document.", { position: "bottom-right" })
-    }
-  }
-
-  const handleDelete = async (documentId: string) => {
-    try {
-      const response = await fetch(
-        `${BACKEND_BASE_URL}/api/v1/admin/documents/${documentId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
+            setDocuments(response.documents);
+            setTotalDocuments(response.count);
+            setTotalPages(Math.ceil(response.count / limit));
+        } catch (error) {
+            if (error instanceof Error) {
+                toast.error(`Failed to load documents: ${error.message}`, {
+                    position: "bottom-right",
+                });
+                return;
+            }
+        } finally {
+            if (requestId === latestRequestIdRef.current) {
+                setLoading(false);
+            }
         }
-      )
-
-      if (!response.ok) throw new Error("Delete failed")
-
-      setDocuments(documents.filter((doc) => doc.id !== documentId))
-      setTotalDocuments(totalDocuments - 1)
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(`Failed to delete document: ${error.message}`, { position: "bottom-right" })
-      }
-      toast.error("Failed to delete document.", { position: "bottom-right" })
-    }
-  }
-
-  const handleRename = async (documentId: string, newName: string) => {
-    try {
-      const response = await fetch(
-        `${BACKEND_BASE_URL}/api/v1/admin/documents/${documentId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ filename: newName }),
-        }
-      )
-
-      if (!response.ok) throw new Error("Rename failed")
-
-      setDocuments(
-        documents.map((doc) => (doc.id === documentId ? { ...doc, filename: newName } : doc))
-      )
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(`Failed to rename document: ${error.message}`, { position: "bottom-right" })
-      }
-    }
-  }
+    }, [currentPage, limit, sortBy, dateFilter, searchQuery]);
 
     useEffect(() => {
         fetchDocuments();
     }, [currentPage, sortBy, dateFilter, searchQuery, fetchDocuments]);
 
+    // Handle document actions
+    const handleDownload = async (doc: Document) => {
+        try {
+            const response = await fetch(doc.download_url);
+            if (!response.ok) {
+                throw new Error(
+                    `Download failed: ${response.status} ${response.statusText}`,
+                );
+            }
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a") as HTMLAnchorElement;
+            a.href = url;
+            a.download = doc.filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            toast.success("Document downloaded successfully.");
+        } catch (error) {
+            toast.error("Failed to download document.", {
+                position: "bottom-right",
+            });
+        }
+    };
+
+    const handleDelete = async (documentId: string) => {
+        try {
+            const response = await fetch(
+                `${BACKEND_BASE_URL}/api/v1/admin/documents/${documentId}`,
+                {
+                    method: "DELETE",
+                    credentials: "include",
+                },
+            );
+
+            if (!response.ok) throw new Error("Delete failed");
+
+            setDocuments((prev) => prev.filter((d) => d.id !== documentId));
+            setTotalDocuments((prev) => {
+                const newTotal = prev - 1;
+                const newTotalPages = Math.max(1, Math.ceil(newTotal / limit));
+                setTotalPages(newTotalPages);
+                setCurrentPage((p) => Math.min(p, newTotalPages));
+                return newTotal;
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                toast.error(`Failed to delete document: ${error.message}`, {
+                    position: "bottom-right",
+                });
+            } else {
+                toast.error("Failed to delete document.", {
+                    position: "bottom-right",
+                });
+            }
+        }
+    };
+
     const handlePreview = (document: Document) => {
         setPreviewDocument(document);
     }
 
+    return (
+        <div className="flex flex-col h-full space-y-6 m-4">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold">All Documents</h1>
+                    <Badge variant="secondary">{totalDocuments}</Badge>
+                </div>
+                <Dialog
+                    open={uploadDialogOpen}
+                    onOpenChange={setUploadDialogOpen}
+                >
+                    <DialogTrigger asChild>
+                        <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Upload Document
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl">
+                        <PdfUploader />
+                    </DialogContent>
+                </Dialog>
+            </div>
 
 
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                    <SelectTrigger className="w-45">
+                        <Filter className="mr-2 h-4 w-4" />
+                        <SelectValue placeholder="Filter by date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All time</SelectItem>
+                        <SelectItem value="today">Today</SelectItem>
+                        <SelectItem value="week">This week</SelectItem>
+                        <SelectItem value="month">This month</SelectItem>
+                    </SelectContent>
+                </Select>
 
-  return (
-    <div className="flex flex-col h-full space-y-6 m-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">All Documents</h1>
-          <Badge variant="secondary">{totalDocuments}</Badge>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-45">
+                        <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="date-desc">Newest first</SelectItem>
+                        <SelectItem value="date-asc">Oldest first</SelectItem>
+                        <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                        <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                        <SelectItem value="size-asc">Smallest first</SelectItem>
+                        <SelectItem value="size-desc">Largest first</SelectItem>
+                    </SelectContent>
+                </Select>
+
+                <div className="flex gap-1 border rounded-md p-1">
+                    <Button
+                        variant={viewMode === "grid" ? "secondary" : "ghost"}
+                        size="icon"
+                        onClick={() => setViewMode("grid")}
+                    >
+                        <Grid3x3 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant={viewMode === "list" ? "secondary" : "ghost"}
+                        size="icon"
+                        onClick={() => setViewMode("list")}
+                    >
+                        <List className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1">
+                {loading ? (
+                    viewMode === "grid" ? (
+                        <DocumentsGridSkeleton count={3} />
+                    ) : (
+                        <DocumentsTableSkeleton count={3} />
+                    )
+                ) : documents.length === 0 ? (
+                    <DocumentsEmptyState
+                        onUploadClick={() => setUploadDialogOpen(true)}
+                    />
+                ) : viewMode === "grid" ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {documents.map((document) => (
+                            <DocumentCard
+                                key={document.id}
+                                document={document}
+                                onDownload={handleDownload}
+                                onDelete={handleDelete}
+                                // onRename={handleRename}
+                                // onShare={handleShare}
+                                onPreview={handlePreview}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <DocumentsTable
+                        documents={documents}
+                        onDownload={handleDownload}
+                        onDelete={handleDelete}
+                        // onRename={handleRename}
+                        // onShare={handleShare}
+                        onPreview={handlePreview}
+                    />
+                )}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="mt-6">
+                    <Pagination>
+                        <PaginationContent>
+                            <PaginationItem>
+                                <PaginationPrevious
+                                    onClick={() =>
+                                        setCurrentPage((p) =>
+                                            Math.max(1, p - 1),
+                                        )
+                                    }
+                                    className={
+                                        currentPage === 1
+                                            ? "pointer-events-none opacity-50"
+                                            : "cursor-pointer"
+                                    }
+                                />
+                            </PaginationItem>
+
+                            {[...Array(totalPages)].map((_, i) => {
+                                const page = i + 1;
+                                if (
+                                    page === 1 ||
+                                    page === totalPages ||
+                                    (page >= currentPage - 1 &&
+                                        page <= currentPage + 1)
+                                ) {
+                                    return (
+                                        <PaginationItem key={page}>
+                                            <PaginationLink
+                                                onClick={() =>
+                                                    setCurrentPage(page)
+                                                }
+                                                isActive={currentPage === page}
+                                                className="cursor-pointer"
+                                            >
+                                                {page}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    );
+                                } else if (
+                                    page === currentPage - 2 ||
+                                    page === currentPage + 2
+                                ) {
+                                    return (
+                                        <PaginationItem key={page}>
+                                            <PaginationEllipsis />
+                                        </PaginationItem>
+                                    );
+                                }
+                                return null;
+                            })}
+
+                            <PaginationItem>
+                                <PaginationNext
+                                    onClick={() =>
+                                        setCurrentPage((p) =>
+                                            Math.min(totalPages, p + 1),
+                                        )
+                                    }
+                                    className={
+                                        currentPage === totalPages
+                                            ? "pointer-events-none opacity-50"
+                                            : "cursor-pointer"
+                                    }
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </div>
+            )}
+
+            {/* PDF Preview Modal */}
+            <PdfPreviewModal
+                document={previewDocument}
+                onClose={() => setPreviewDocument(null)}
+            />
         </div>
         <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
           <DialogTrigger asChild>
