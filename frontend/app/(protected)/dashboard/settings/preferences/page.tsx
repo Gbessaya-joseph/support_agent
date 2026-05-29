@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { useUser } from "@/hooks/use-user"
+import { getToken } from '@/utils/supabase/get-token'
 
 interface UserPreferences {
   default_view: "grid" | "list"
@@ -75,8 +75,8 @@ function PreferencesSkeleton() {
 }
 
 export default function PreferencesPage() {
-  const { user, profile, loading: userLoading } = useUser()
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [hasChanges, setHasChanges] = useState(false)
 
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -86,14 +86,37 @@ export default function PreferencesPage() {
   })
 
   useEffect(() => {
-    if (profile?.preferences) {
-      setPreferences({
-        default_view: profile.preferences.default_view || "grid",
-        items_per_page: profile.preferences.items_per_page || 12,
-        auto_download: profile.preferences.auto_download || false,
-      })
+    fetchPreferences()
+  }, [])
+
+  const fetchPreferences = async () => {
+    try {
+      const token = await getToken()
+      if (!token) throw new Error("No auth token")
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/me`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      if (!response.ok) throw new Error("Failed to fetch user info")
+
+      const data = await response.json()
+      const prefs = data.preferences
+      if (prefs) {
+        setPreferences({
+          default_view: prefs.default_view || "grid",
+          items_per_page: prefs.items_per_page || 12,
+          auto_download: prefs.auto_download || false,
+        })
+      }
+    } catch (error) {
+      console.error("Failed to load preferences:", error)
+    } finally {
+      setLoading(false)
     }
-  }, [profile])
+  }
 
   const handleChange = (field: keyof UserPreferences, value: any) => {
     setPreferences((prev) => ({ ...prev, [field]: value }))
@@ -101,16 +124,16 @@ export default function PreferencesPage() {
   }
 
   const handleSave = async () => {
-    if (!user) return
-
     setSaving(true)
     try {
+      const token = await getToken()
+      if (!token) throw new Error("No auth token")
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/profile/preferences`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/preferences`,
         {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(preferences),
         }
       )
@@ -126,7 +149,7 @@ export default function PreferencesPage() {
     }
   }
 
-  if (userLoading) {
+  if (loading) {
     return <PreferencesSkeleton />
   }
 
@@ -218,14 +241,13 @@ export default function PreferencesPage() {
           <Button
             variant="outline"
             onClick={() => {
-              if (profile?.preferences) {
-                setPreferences({
-                  default_view: profile.preferences.default_view || "grid",
-                  items_per_page: profile.preferences.items_per_page || 12,
-                  auto_download: profile.preferences.auto_download || false,
-                })
-              }
-              setHasChanges(false)
+            setPreferences({
+              default_view: "grid",
+              items_per_page: 12,
+              auto_download: false,
+            })
+            setHasChanges(false)
+            fetchPreferences()
             }}
           >
             Cancel

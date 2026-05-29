@@ -18,7 +18,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {toast} from "sonner"
-import { useUser } from "@/hooks/use-user"
+import { getToken } from '@/utils/supabase/get-token'
 
 interface AccountPreferences {
   language: string
@@ -92,8 +92,9 @@ function AccountSkeleton() {
 
 export default function AccountPage() {
   const { theme, setTheme } = useTheme()
-  const { user, profile, loading: userLoading } = useUser()
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -108,14 +109,40 @@ export default function AccountPage() {
   }, [])
 
   useEffect(() => {
-    if (profile?.preferences) {
-      setPreferences({
-        language: profile.preferences.language || "en",
-        timezone: profile.preferences.timezone || "UTC",
-        email_notifications: profile.preferences.email_notifications ?? true,
-      })
+    fetchPreferences()
+  }, [])
+
+  const fetchPreferences = async () => {
+    try {
+      const token = await getToken()
+      if (!token) throw new Error("No auth token")
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/me`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      if (!response.ok) throw new Error("Failed to fetch user info")
+
+      const data = await response.json()
+      const prefs = data.preferences
+      if (prefs) {
+        setPreferences({
+          language: prefs.language || "en",
+          timezone: prefs.timezone || "UTC",
+          email_notifications: prefs.email_notifications ?? true,
+        })
+      }
+      setLoadFailed(false)
+    } catch (error) {
+      console.error("Failed to load preferences:", error)
+      setLoadFailed(true)
+      toast.error("Failed to load your preferences. Please refresh the page.", { position: "top-right" })
+    } finally {
+      setLoading(false)
     }
-  }, [profile])
+  }
 
   const handleChange = (field: keyof AccountPreferences, value: any) => {
     setPreferences((prev) => ({ ...prev, [field]: value }))
@@ -123,16 +150,16 @@ export default function AccountPage() {
   }
 
   const handleSave = async () => {
-    if (!user) return
-
     setSaving(true)
     try {
+      const token = await getToken()
+      if (!token) throw new Error("No auth token")
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/profile/preferences`,
+        `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL}/api/v1/admin/preferences`,
         {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(preferences),
         }
       )
@@ -148,7 +175,7 @@ export default function AccountPage() {
     }
   }
 
-  if (userLoading || !mounted) {
+  if (loading || !mounted) {
     return <AccountSkeleton />
   }
 
@@ -279,19 +306,18 @@ export default function AccountPage() {
           <Button
             variant="outline"
             onClick={() => {
-              if (profile?.preferences) {
-                setPreferences({
-                  language: profile.preferences.language || "en",
-                  timezone: profile.preferences.timezone || "UTC",
-                  email_notifications: profile.preferences.email_notifications ?? true,
-                })
-              }
-              setHasChanges(false)
+            setPreferences({
+              language: "en",
+              timezone: "UTC",
+              email_notifications: true,
+            })
+            setHasChanges(false)
+            fetchPreferences()
             }}
           >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || loadFailed}>
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
